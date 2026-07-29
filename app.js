@@ -936,8 +936,14 @@ function formatValue(val) {
 }
 
 function updateMatchValues(match, statLogs) {
-    // Collect all players from home and away teams
-    const allPlayersInMatch = state.players.filter(p => p.teamId === match.homeTeam || p.teamId === match.awayTeam);
+    // Only process players in the match lineup (if lineup exists)
+    let allPlayersInMatch;
+    if (match.lineup && match.lineup.length > 0) {
+        allPlayersInMatch = state.players.filter(p => match.lineup.includes(p.id));
+    } else {
+        // Fallback: all team players (old behavior)
+        allPlayersInMatch = state.players.filter(p => p.teamId === match.homeTeam || p.teamId === match.awayTeam);
+    }
     
     // Process stats per player for this match
     const pStats = {};
@@ -2503,7 +2509,41 @@ function updateAdminMatchLabels() {
         
         document.getElementById("home-scorers-title").innerText = `${getTeamShort(match.homeTeam)} Katkıları`;
         document.getElementById("away-scorers-title").innerText = `${getTeamShort(match.awayTeam)} Katkıları`;
+        
+        // Populate lineup checkboxes
+        renderLineupCheckboxes(match.homeTeam, 'lineup-home-list', 'lineup-home-title', match);
+        renderLineupCheckboxes(match.awayTeam, 'lineup-away-list', 'lineup-away-title', match);
     }
+}
+
+function renderLineupCheckboxes(teamId, containerId, titleId, match) {
+    const container = document.getElementById(containerId);
+    const titleEl = document.getElementById(titleId);
+    if (!container) return;
+    
+    const teamName = getTeamName(teamId);
+    if (titleEl) titleEl.innerText = `${teamName} Kadrosu`;
+    
+    const teamPlayers = state.players.filter(p => p.teamId === teamId && !p.isUTCard && !p.id.includes('_pack_') && !p.id.includes('_starter_'));
+    
+    if (teamPlayers.length === 0) {
+        container.innerHTML = '<p class="text-muted" style="font-size:0.85rem;">Bu takımda oyuncu yok</p>';
+        return;
+    }
+    
+    const posOrder = { 'kaleci': 0, 'defans': 1, 'orta_saha': 2, 'forvet': 3 };
+    teamPlayers.sort((a, b) => (posOrder[a.position] || 9) - (posOrder[b.position] || 9));
+    
+    const posLabels = { 'kaleci': 'GK', 'defans': 'DEF', 'orta_saha': 'MF', 'forvet': 'FW' };
+    
+    container.innerHTML = teamPlayers.map(p => `
+        <label style="display:flex;align-items:center;gap:8px;padding:4px 8px;margin:2px 0;border-radius:6px;cursor:pointer;background:var(--surface-light);font-size:0.85rem;" onmouseover="this.style.background='var(--bg-card-hover)'" onmouseout="this.style.background='var(--surface-light)'">
+            <input type="checkbox" class="lineup-checkbox" value="${p.id}" data-team="${teamId}" checked style="width:16px;height:16px;accent-color:var(--accent-neon);">
+            <span style="color:var(--text-muted);font-size:0.7rem;width:24px;">${posLabels[p.position] || '?'}</span>
+            <span style="color:white;font-weight:600;">${p.name}</span>
+            <span style="color:var(--accent-gold);font-size:0.75rem;margin-left:auto;">${getPlayerOVR(p)}</span>
+        </label>
+    `).join("");
 }
 
 function addStatRow(teamSide) {
@@ -2807,6 +2847,12 @@ function initEventHandlers() {
             state.matches[matchIndex].homeScore = homeScore;
             state.matches[matchIndex].awayScore = awayScore;
             state.matches[matchIndex].played = true;
+
+            // Save lineup (checked players only)
+            const lineupCheckboxes = document.querySelectorAll(".lineup-checkbox:checked");
+            const lineup = [];
+            lineupCheckboxes.forEach(cb => lineup.push(cb.value));
+            state.matches[matchIndex].lineup = lineup;
 
             const statRows = document.querySelectorAll(".stat-row");
             let statLogs = [];
