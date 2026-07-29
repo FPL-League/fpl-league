@@ -1394,13 +1394,8 @@ function initMatchEngine() {
     const homePos = [{ x: 10, y: 50 }, { x: 25, y: 50 }, { x: 40, y: 30 }, { x: 40, y: 70 }, { x: 45, y: 50 }];
     const awayPos = [{ x: 90, y: 50 }, { x: 75, y: 50 }, { x: 60, y: 30 }, { x: 60, y: 70 }, { x: 55, y: 50 }];
 
-    // Get player names from draft squad
+    // Get player names from draft squad (draftSquad stores player objects directly)
     const draftSlots = ['kaleci','defans','orta_saha_1','orta_saha_2','forvet'];
-    const homePlayerNames = draftSlots.map(slot => {
-        const pId = state.draftSquad ? state.draftSquad[slot] : null;
-        const player = pId ? state.players.find(p => p.id === pId) : null;
-        return player ? player.name.split(' ').pop() : (i => ['GK','DEF','MF1','MF2','FW'][i]);
-    });
 
     homePos.forEach((p, i) => {
         const dot = document.createElement("div");
@@ -1412,9 +1407,8 @@ function initMatchEngine() {
         // Add player name label
         const label = document.createElement("div");
         label.className = "me-player-label";
-        const pId = state.draftSquad ? state.draftSquad[draftSlots[i]] : null;
-        const player = pId ? state.players.find(pl => pl.id === pId) : null;
-        label.innerText = player ? player.name.split(' ').pop() : ['GK','DEF','MF','MF','FW'][i];
+        const squadPlayer = state.draftSquad ? state.draftSquad[draftSlots[i]] : null;
+        label.innerText = squadPlayer && squadPlayer.name ? squadPlayer.name.split(' ').pop() : ['GK','DEF','MF','MF','FW'][i];
         dot.appendChild(label);
         container.appendChild(dot);
     });
@@ -1598,6 +1592,9 @@ function runSimulation() {
                     const scorerName = mySquad.forvet ? mySquad.forvet.name : "Forvet";
                     if (mySquad.forvet) {
                         mySquad.forvet.goals = (mySquad.forvet.goals || 0) + 1;
+                        // Sync to state.players
+                        const realPlayer = state.players.find(p => p.id === mySquad.forvet.id);
+                        if (realPlayer) realPlayer.goals = mySquad.forvet.goals;
                         // Random assist to midfielders
                         if (Math.random() > 0.4) {
                             const mids = [];
@@ -1606,6 +1603,9 @@ function runSimulation() {
                             if (mids.length > 0) {
                                 const assister = mids[Math.floor(Math.random() * mids.length)];
                                 assister.assists = (assister.assists || 0) + 1;
+                                // Sync assists to state.players
+                                const realAssister = state.players.find(p => p.id === assister.id);
+                                if (realAssister) realAssister.assists = assister.assists;
                             }
                         }
                     }
@@ -1639,6 +1639,9 @@ function runSimulation() {
                     const keeperName = mySquad.kaleci ? mySquad.kaleci.name : "Kaleci";
                     if (mySquad.kaleci) {
                         mySquad.kaleci.saves = (mySquad.kaleci.saves || 0) + 1;
+                        // Sync saves to state.players
+                        const realKeeper = state.players.find(p => p.id === mySquad.kaleci.id);
+                        if (realKeeper) realKeeper.saves = mySquad.kaleci.saves;
                     }
                     narrationBox.innerHTML += `
                         <p class="narration-item">
