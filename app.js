@@ -1592,9 +1592,6 @@ function runSimulation() {
                     const scorerName = mySquad.forvet ? mySquad.forvet.name : "Forvet";
                     if (mySquad.forvet) {
                         mySquad.forvet.goals = (mySquad.forvet.goals || 0) + 1;
-                        // Sync to state.players
-                        const realPlayer = state.players.find(p => p.id === mySquad.forvet.id);
-                        if (realPlayer) realPlayer.goals = mySquad.forvet.goals;
                         // Random assist to midfielders
                         if (Math.random() > 0.4) {
                             const mids = [];
@@ -1603,9 +1600,6 @@ function runSimulation() {
                             if (mids.length > 0) {
                                 const assister = mids[Math.floor(Math.random() * mids.length)];
                                 assister.assists = (assister.assists || 0) + 1;
-                                // Sync assists to state.players
-                                const realAssister = state.players.find(p => p.id === assister.id);
-                                if (realAssister) realAssister.assists = assister.assists;
                             }
                         }
                     }
@@ -1639,9 +1633,6 @@ function runSimulation() {
                     const keeperName = mySquad.kaleci ? mySquad.kaleci.name : "Kaleci";
                     if (mySquad.kaleci) {
                         mySquad.kaleci.saves = (mySquad.kaleci.saves || 0) + 1;
-                        // Sync saves to state.players
-                        const realKeeper = state.players.find(p => p.id === mySquad.kaleci.id);
-                        if (realKeeper) realKeeper.saves = mySquad.kaleci.saves;
                     }
                     narrationBox.innerHTML += `
                         <p class="narration-item">
