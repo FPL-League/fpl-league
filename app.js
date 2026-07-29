@@ -3446,6 +3446,21 @@ const GUESSWHO_PLAYERS = [
 let gwState = { currentPlayer: null, hintIndex: 0, score: 0, questionNum: 1, usedPlayers: [] };
 
 function initGuessWho() {
+    // 24 hour cooldown check
+    if (state.currentUser) {
+        const lastPlayed = state.currentUser.lastGuessWho || 0;
+        const elapsed = Date.now() - lastPlayed;
+        const cooldown = 24 * 60 * 60 * 1000;
+        if (elapsed < cooldown && !gwState.currentPlayer) {
+            const remaining = cooldown - elapsed;
+            const hrs = Math.floor(remaining / (3600 * 1000));
+            const mins = Math.floor((remaining % (3600 * 1000)) / (60 * 1000));
+            const area = document.getElementById("gw-hint-area");
+            if (area) area.innerHTML = `<div style="text-align:center;padding:2rem;"><h3 style="color:var(--accent-gold);">⏰ Bekleme Süresi</h3><p>Bu oyunu günde 1 kez oynayabilirsiniz.</p><p style="color:var(--accent-blue);font-size:1.3rem;font-weight:bold;">${hrs} saat ${mins} dakika kaldı</p></div>`;
+            return;
+        }
+    }
+    
     if (!gwState.currentPlayer || gwState.questionNum > 10) {
         gwState = { currentPlayer: null, hintIndex: 0, score: 0, questionNum: 1, usedPlayers: [] };
     }
@@ -3481,7 +3496,12 @@ function renderGWHints() {
     if (!area || !gwState.currentPlayer) return;
     
     if (gwState.questionNum > 10) {
-        area.innerHTML = `<div style="text-align:center;"><h3 style="color:var(--accent-gold);">🏆 Oyun Bitti!</h3><p>Toplam Skor: <strong>${gwState.score}</strong>/10</p><button class="btn btn-primary" onclick="resetGW()">Tekrar Oyna</button></div>`;
+        // Save 24h cooldown when game finishes
+        if (state.currentUser) {
+            const user = state.users.find(u => u.username === state.currentUser.username);
+            if (user && !user.lastGuessWho) { user.lastGuessWho = Date.now(); state.currentUser.lastGuessWho = Date.now(); saveDatabase(); }
+        }
+        area.innerHTML = `<div style="text-align:center;"><h3 style="color:var(--accent-gold);">🏆 Oyun Bitti!</h3><p>Toplam Skor: <strong>${gwState.score}</strong>/10</p><p style="color:var(--text-muted);font-size:0.9rem;">Kazanılan Coin: <strong style="color:var(--accent-neon);">${gwState.score * 10}</strong></p><p style="color:var(--accent-blue);font-size:0.85rem;">Bir sonraki oyun 24 saat sonra açılacak.</p></div>`;
         return;
     }
     
@@ -3508,10 +3528,10 @@ function makeGuess() {
         gwState.score++;
         if (resultEl) resultEl.innerHTML = `<div style="background:rgba(0,255,136,0.15);padding:1rem;border-radius:8px;text-align:center;"><strong style="color:var(--accent-neon);">✅ Doğru! ${gwState.currentPlayer.name}</strong></div>`;
         
-        // Give coins
+        // Give coins (10 per correct)
         if (state.currentUser) {
             const user = state.users.find(u => u.username === state.currentUser.username);
-            if (user) { user.coins = (user.coins || 0) + 50; state.currentUser.coins = user.coins; saveDatabase(); }
+            if (user) { user.coins = (user.coins || 0) + 10; state.currentUser.coins = user.coins; saveDatabase(); }
         }
         
         setTimeout(() => { gwState.questionNum++; pickNewGWPlayer(); input.value = ""; renderGWHints(); }, 1500);
@@ -3538,6 +3558,11 @@ function skipGW() {
 }
 
 window.resetGW = function() {
+    // Save cooldown timestamp
+    if (state.currentUser) {
+        const user = state.users.find(u => u.username === state.currentUser.username);
+        if (user) { user.lastGuessWho = Date.now(); state.currentUser.lastGuessWho = Date.now(); saveDatabase(); }
+    }
     gwState = { currentPlayer: null, hintIndex: 0, score: 0, questionNum: 1, usedPlayers: [] };
     initGuessWho();
 };
