@@ -673,7 +673,7 @@ window.openTeamDetailModal = function(teamId) {
     document.getElementById("team-detail-name").innerText = team.name;
     document.getElementById("team-detail-logo").src = team.logo || 'https://via.placeholder.com/50';
 
-    const teamPlayers = state.players.filter(p => p.teamId === teamId).sort((a, b) => getOvr(b) - getOvr(a));
+    const teamPlayers = state.players.filter(p => p.teamId === teamId).sort((a, b) => getPlayerOVR(b) - getPlayerOVR(a));
 
     const benchContainer = document.getElementById("team-detail-bench");
     if (teamPlayers.length > 0) {
@@ -683,7 +683,7 @@ window.openTeamDetailModal = function(teamId) {
                     <strong style="font-size: 1.1rem;">${idx + 1}. ${p.name}</strong>
                     <small class="text-muted" style="text-transform: uppercase;">Mevki: ${p.position}</small>
                 </div>
-                <div style="color: var(--accent-gold); font-weight: bold; font-size: 1.3rem;">${getOvr(p)} OVR</div>
+                <div style="color: var(--accent-gold); font-weight: bold; font-size: 1.3rem;">${getPlayerOVR(p)} OVR</div>
             </div>
         `).join("");
     } else {
@@ -2299,6 +2299,7 @@ function renderAdminTeamsList() {
                 <td>
                     <div style="display: flex; gap: 8px;">
                         <button class="btn btn-secondary btn-sm" onclick="editTeamDetails('${t.id}')"><i class="fa-solid fa-pen-to-square"></i> Düzenle</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteTeam('${t.id}')"><i class="fa-solid fa-trash"></i> Sil</button>
                     </div>
                 </td>
             </tr>
@@ -2929,6 +2930,26 @@ window.switchTab = function(targetSectionId) {
             titleEl.innerText = "Yönetici Konsolu";
             subEl.innerText = "Sadece admin yetkisi olanların erişebileceği ayarlar.";
             break;
+        case "news":
+            titleEl.innerText = "Haberler";
+            subEl.innerText = "Lig ile ilgili en son gelişmeler ve duyurular.";
+            renderNews();
+            break;
+        case "social":
+            titleEl.innerText = "Sosyal Akış (X)";
+            subEl.innerText = "Lig topluluğuyla düşüncelerinizi paylaşın.";
+            renderSocial();
+            break;
+        case "betting":
+            titleEl.innerText = "Bahis Merkezi";
+            subEl.innerText = "Bahise açık maçlara coin yatırın, doğru tahmin = 2x kazanç!";
+            renderBetting();
+            break;
+        case "guesswho":
+            titleEl.innerText = "Ben Kimim?";
+            subEl.innerText = "Gerçek futbolcuları ipuçlarından tahmin edin.";
+            initGuessWho();
+            break;
     }
 };
 
@@ -3070,3 +3091,659 @@ function renderChat() {
     // Auto scroll to bottom
     container.scrollTop = container.scrollHeight;
 }
+
+// ==========================================================================
+// V4.0 MEGA UPDATE - NEW FEATURES
+// ==========================================================================
+
+// --- DELETE TEAM ---
+window.deleteTeam = function(teamId) {
+    const team = state.teams.find(t => t.id === teamId);
+    if (!team) return;
+    if (!confirm(`"${team.name}" takımını ve tüm oyuncularının takım bağlantısını silmek istediğinizden emin misiniz?`)) return;
+    
+    // Remove team assignment from players
+    state.players.forEach(p => {
+        if (p.teamId === teamId) p.teamId = null;
+    });
+    
+    // Remove matches involving this team
+    state.matches = state.matches.filter(m => m.homeTeam !== teamId && m.awayTeam !== teamId);
+    
+    // Remove the team
+    state.teams = state.teams.filter(t => t.id !== teamId);
+    
+    saveDatabase();
+    renderAll();
+    alert(`"${team.name}" takımı başarıyla silindi!`);
+};
+
+// --- NEWS SYSTEM ---
+function renderNews() {
+    const container = document.getElementById("news-container");
+    if (!container) return;
+    
+    // Show admin form if admin
+    const adminForm = document.getElementById("news-admin-form");
+    if (adminForm) {
+        if (state.currentUser && state.currentUser.role === 'admin') {
+            adminForm.classList.remove("hidden");
+        } else {
+            adminForm.classList.add("hidden");
+        }
+    }
+    
+    if (!state.news || state.news.length === 0) {
+        container.innerHTML = `<p class="text-muted text-center" style="margin-top:2rem;">Henüz haber yayınlanmadı.</p>`;
+        return;
+    }
+    
+    const sorted = [...state.news].sort((a, b) => b.time - a.time);
+    container.innerHTML = sorted.map(n => `
+        <div style="background:var(--surface-dark);border-radius:12px;overflow:hidden;border:1px solid var(--border-color);">
+            ${n.image ? `<img src="${n.image}" alt="${n.title}" style="width:100%;max-height:300px;object-fit:cover;">` : ''}
+            <div style="padding:1.2rem;">
+                <h3 style="margin:0 0 0.5rem 0;color:var(--accent-gold);font-size:1.3rem;">${n.title}</h3>
+                <p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:0.8rem;">${new Date(n.time).toLocaleDateString('tr-TR')} - ${new Date(n.time).toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'})}</p>
+                <p style="color:rgba(255,255,255,0.85);line-height:1.6;">${n.description}</p>
+            </div>
+            ${state.currentUser && state.currentUser.role === 'admin' ? `<div style="padding:0 1.2rem 1rem;"><button class="btn btn-danger btn-sm" onclick="deleteNews('${n.id}')"><i class="fa-solid fa-trash"></i> Sil</button></div>` : ''}
+        </div>
+    `).join("");
+}
+
+function initNewsHandlers() {
+    const btn = document.getElementById("news-publish-btn");
+    if (!btn) return;
+    btn.onclick = () => {
+        if (!state.currentUser || state.currentUser.role !== 'admin') { alert("Sadece admin haber yayınlayabilir!"); return; }
+        const title = document.getElementById("news-title-input").value.trim();
+        const image = document.getElementById("news-image-input").value.trim();
+        const desc = document.getElementById("news-desc-input").value.trim();
+        if (!title || !desc) { alert("Başlık ve açıklama zorunludur!"); return; }
+        
+        state.news.push({ id: "news_" + Date.now(), title, image, description: desc, time: Date.now() });
+        saveDatabase();
+        document.getElementById("news-title-input").value = "";
+        document.getElementById("news-image-input").value = "";
+        document.getElementById("news-desc-input").value = "";
+        renderNews();
+        alert("Haber yayınlandı!");
+    };
+}
+
+window.deleteNews = function(newsId) {
+    if (!confirm("Bu haberi silmek istediğinize emin misiniz?")) return;
+    state.news = state.news.filter(n => n.id !== newsId);
+    saveDatabase();
+    renderNews();
+};
+
+// --- SOCIAL FEED (X Clone) ---
+function renderSocial() {
+    const container = document.getElementById("social-feed-container");
+    if (!container) return;
+    
+    if (!state.posts || state.posts.length === 0) {
+        container.innerHTML = `<p class="text-muted text-center" style="margin-top:1rem;">Henüz gönderi yok. İlk paylaşımı siz yapın!</p>`;
+        return;
+    }
+    
+    const sorted = [...state.posts].sort((a, b) => b.time - a.time);
+    const isAdmin = state.currentUser && state.currentUser.role === 'admin';
+    
+    container.innerHTML = sorted.map(p => `
+        <div style="background:var(--surface-dark);border-radius:12px;padding:1rem;border:1px solid var(--border-color);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                <div>
+                    <strong style="color:var(--accent-blue);">@${p.sender}</strong>
+                    <span style="color:var(--text-muted);font-size:0.8rem;margin-left:8px;">${p.nickname}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="color:var(--text-muted);font-size:0.75rem;">${new Date(p.time).toLocaleDateString('tr-TR')} ${new Date(p.time).toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'})}</span>
+                    ${isAdmin ? `<button class="btn btn-danger btn-sm" onclick="deletePost('${p.id}')" style="padding:2px 6px;font-size:0.7rem;"><i class="fa-solid fa-trash"></i></button>` : ''}
+                </div>
+            </div>
+            <p style="margin:0;color:rgba(255,255,255,0.9);line-height:1.5;">${p.text}</p>
+            <div style="margin-top:0.5rem;display:flex;gap:1rem;">
+                <button class="btn btn-secondary btn-sm" onclick="likePost('${p.id}')" style="padding:2px 8px;font-size:0.8rem;background:transparent;border:1px solid var(--border-color);"><i class="fa-solid fa-heart" style="color:${p.likes && state.currentUser && p.likes.includes(state.currentUser.username) ? '#ff4d6d' : 'var(--text-muted)'}"></i> ${(p.likes || []).length}</button>
+            </div>
+        </div>
+    `).join("");
+}
+
+function initSocialHandlers() {
+    const btn = document.getElementById("social-post-btn");
+    if (!btn) return;
+    btn.onclick = () => {
+        if (!state.currentUser) { alert("Gönderi paylaşmak için giriş yapmalısınız!"); return; }
+        const input = document.getElementById("social-post-input");
+        const text = input.value.trim();
+        if (!text) return;
+        
+        state.posts.push({
+            id: "post_" + Date.now(),
+            sender: state.currentUser.username,
+            nickname: state.currentUser.nickname,
+            text: text,
+            time: Date.now(),
+            likes: []
+        });
+        saveDatabase();
+        input.value = "";
+        renderSocial();
+    };
+}
+
+window.deletePost = function(postId) {
+    if (!confirm("Bu gönderiyi silmek istediğinize emin misiniz?")) return;
+    state.posts = state.posts.filter(p => p.id !== postId);
+    saveDatabase();
+    renderSocial();
+};
+
+window.likePost = function(postId) {
+    if (!state.currentUser) { alert("Beğenmek için giriş yapmalısınız!"); return; }
+    const post = state.posts.find(p => p.id === postId);
+    if (!post) return;
+    if (!post.likes) post.likes = [];
+    
+    const idx = post.likes.indexOf(state.currentUser.username);
+    if (idx === -1) {
+        post.likes.push(state.currentUser.username);
+    } else {
+        post.likes.splice(idx, 1);
+    }
+    saveDatabase();
+    renderSocial();
+};
+
+// --- BETTING SYSTEM ---
+function renderBetting() {
+    const container = document.getElementById("betting-matches-container");
+    if (!container) return;
+    
+    // Find matches that admin opened for betting
+    const bettableMatches = state.matches.filter(m => m.bettingOpen);
+    
+    if (bettableMatches.length === 0) {
+        container.innerHTML = `<p class="text-muted text-center" style="margin-top:2rem;">Şu anda bahise açık maç bulunmuyor. Admin tarafından açılmasını bekleyin.</p>`;
+        return;
+    }
+    
+    container.innerHTML = bettableMatches.map(m => {
+        const homeName = getTeamName(m.homeTeam);
+        const awayName = getTeamName(m.awayTeam);
+        const homelogo = getTeamLogo(m.homeTeam);
+        const awaylogo = getTeamLogo(m.awayTeam);
+        const myBet = state.bets.find(b => b.matchId === m.id && state.currentUser && b.username === state.currentUser.username);
+        
+        let statusHTML = '';
+        if (m.played) {
+            // Match is finished, show result
+            const result = m.homeScore > m.awayScore ? 'home' : (m.homeScore < m.awayScore ? 'away' : 'draw');
+            statusHTML = `<div style="text-align:center;padding:0.5rem;background:rgba(0,255,136,0.1);border-radius:8px;margin-top:0.5rem;">
+                <strong>Sonuç: ${m.homeScore} - ${m.awayScore}</strong>
+                ${myBet ? (myBet.prediction === result ? '<br><span style="color:var(--accent-neon);">✅ Kazandınız! +' + (myBet.amount * 2) + ' Coin</span>' : '<br><span style="color:#ff4d6d;">❌ Kaybettiniz</span>') : ''}
+            </div>`;
+        } else if (myBet) {
+            statusHTML = `<div style="text-align:center;padding:0.5rem;background:rgba(123,44,191,0.15);border-radius:8px;margin-top:0.5rem;">
+                <span style="color:#9d4edd;">Bahsiniz: ${myBet.prediction === 'home' ? homeName : myBet.prediction === 'away' ? awayName : 'Beraberlik'} - ${myBet.amount} Coin</span>
+            </div>`;
+        } else {
+            statusHTML = `
+            <div style="display:flex;gap:0.5rem;margin-top:0.8rem;flex-wrap:wrap;">
+                <select id="bet-pred-${m.id}" style="flex:1;padding:0.5rem;background:var(--surface-light);color:white;border:1px solid var(--border-color);border-radius:8px;">
+                    <option value="home">${homeName} Kazanır</option>
+                    <option value="draw">Beraberlik</option>
+                    <option value="away">${awayName} Kazanır</option>
+                </select>
+                <input type="number" id="bet-amount-${m.id}" placeholder="Coin" min="10" max="500" value="50" style="width:80px;padding:0.5rem;background:var(--surface-light);color:white;border:1px solid var(--border-color);border-radius:8px;">
+                <button class="btn btn-primary btn-sm" onclick="placeBet('${m.id}')"><i class="fa-solid fa-coins"></i> Bahis Yap</button>
+            </div>`;
+        }
+        
+        return `
+        <div style="background:var(--surface-dark);border-radius:12px;padding:1.2rem;border:1px solid var(--border-color);">
+            <div style="text-align:center;color:var(--text-muted);font-size:0.8rem;margin-bottom:0.5rem;">${m.week}. Hafta</div>
+            <div style="display:flex;justify-content:space-around;align-items:center;">
+                <div style="text-align:center;">${homelogo}<div style="margin-top:4px;font-weight:600;">${homeName}</div></div>
+                <div style="font-size:1.5rem;font-weight:800;color:var(--accent-gold);">VS</div>
+                <div style="text-align:center;">${awaylogo}<div style="margin-top:4px;font-weight:600;">${awayName}</div></div>
+            </div>
+            ${statusHTML}
+        </div>`;
+    }).join("");
+}
+
+window.placeBet = function(matchId) {
+    if (!state.currentUser) { alert("Bahis yapmak için giriş yapmalısınız!"); return; }
+    const predEl = document.getElementById("bet-pred-" + matchId);
+    const amountEl = document.getElementById("bet-amount-" + matchId);
+    if (!predEl || !amountEl) return;
+    
+    const prediction = predEl.value;
+    const amount = parseInt(amountEl.value);
+    
+    if (isNaN(amount) || amount < 10 || amount > 500) { alert("Bahis miktarı 10-500 arasında olmalıdır!"); return; }
+    
+    const user = state.users.find(u => u.username === state.currentUser.username);
+    if (!user || (user.coins || 0) < amount) { alert("Yeterli coin'iniz yok!"); return; }
+    
+    // Already bet?
+    if (state.bets.find(b => b.matchId === matchId && b.username === state.currentUser.username)) {
+        alert("Bu maça zaten bahis yaptınız!"); return;
+    }
+    
+    user.coins -= amount;
+    state.currentUser.coins = user.coins;
+    
+    state.bets.push({
+        id: "bet_" + Date.now(),
+        matchId: matchId,
+        username: state.currentUser.username,
+        prediction: prediction,
+        amount: amount,
+        resolved: false
+    });
+    
+    saveDatabase();
+    renderBetting();
+    renderAll();
+    alert("Bahis yapıldı! İyi şanslar! 🎲");
+};
+
+// Resolve bets when a match is played
+function resolveBetsForMatch(matchId) {
+    const match = state.matches.find(m => m.id === matchId);
+    if (!match || !match.played) return;
+    
+    const result = match.homeScore > match.awayScore ? 'home' : (match.homeScore < match.awayScore ? 'away' : 'draw');
+    
+    state.bets.filter(b => b.matchId === matchId && !b.resolved).forEach(b => {
+        b.resolved = true;
+        if (b.prediction === result) {
+            const user = state.users.find(u => u.username === b.username);
+            if (user) {
+                user.coins = (user.coins || 0) + (b.amount * 2);
+                if (state.currentUser && state.currentUser.username === b.username) {
+                    state.currentUser.coins = user.coins;
+                }
+            }
+        }
+    });
+    saveDatabase();
+}
+
+// Admin: Toggle betting on a match
+window.toggleBetting = function(matchId) {
+    const match = state.matches.find(m => m.id === matchId);
+    if (!match) return;
+    match.bettingOpen = !match.bettingOpen;
+    saveDatabase();
+    renderAll();
+    alert(match.bettingOpen ? "Maç bahise açıldı!" : "Maç bahise kapatıldı!");
+};
+
+// --- GUESS WHO GAME ---
+const GUESSWHO_PLAYERS = [
+    { name: "Lionel Messi", hints: ["Arjantin'de doğdum", "6 kez Ballon d'Or kazandım", "Barcelona'da 21 yıl oynadım", "Dünya Kupası 2022 şampiyonuyum", "10 numarayı giyerim"] },
+    { name: "Cristiano Ronaldo", hints: ["Portekiz'de doğdum", "5 kez Ballon d'Or kazandım", "Real Madrid'de en çok gol atan oyuncuyum", "CR7 lakabımla biliniyorum", "Suudi Arabistan'da oynuyorum"] },
+    { name: "Neymar", hints: ["Brezilya'da doğdum", "Santos'ta başladım", "Barcelona'da MSN üçlüsünün bir parçasıydım", "PSG'ye rekor bedelle transfer oldum", "10 numarayı giyerim"] },
+    { name: "Kylian Mbappe", hints: ["Fransa'da doğdum", "Monaco'da kariyerime başladım", "19 yaşında Dünya Kupası kazandım", "PSG'den Real Madrid'e transfer oldum", "Dünyanın en hızlı futbolcularından biriyim"] },
+    { name: "Erling Haaland", hints: ["Norveç'te doğdum", "Red Bull Salzburg'da patladım", "Dortmund'da yıldızlaştım", "Manchester City'deyim", "Premier League gol rekorunu kırdım"] },
+    { name: "Luka Modric", hints: ["Hırvatistan'da doğdum", "Tottenham'da oynadım", "Real Madrid'de efsane oldum", "2018 Ballon d'Or'u kazandım", "10 numarayı giyerim"] },
+    { name: "Robert Lewandowski", hints: ["Polonya'da doğdum", "Dortmund'da başladım", "Bayern Münih'te rekorlar kırdım", "Barcelona'ya transfer oldum", "Yılın futbolcusu seçildim"] },
+    { name: "Mohamed Salah", hints: ["Mısır'da doğdum", "Roma'da oynadım", "Liverpool'un yıldızıyım", "Premier League gol kralı oldum", "11 numarayı giyerim"] },
+    { name: "Zinedine Zidane", hints: ["Fransa'da doğdum", "Juventus'ta oynadım", "Real Madrid efsanesiyim", "Dünya Kupası finalinde kafa attım", "Şampiyonlar Ligi'ni hem oyuncu hem teknik direktör olarak kazandım"] },
+    { name: "Ronaldinho", hints: ["Brezilya'da doğdum", "PSG'de başladım", "Barcelona'da sihir yaptım", "2005 Ballon d'Or sahibiyim", "Samba futbolunun kralıyım"] },
+    { name: "Thierry Henry", hints: ["Fransa'da doğdum", "Monaco'da başladım", "Arsenal efsanesiyim", "Yenilmezler takımının golcüsüydüm", "Premier League'in en iyi forvetlerinden biriyim"] },
+    { name: "Andres Iniesta", hints: ["İspanya'da doğdum", "La Masia mezunuyum", "Barcelona'da 22 yıl oynadım", "2010 Dünya Kupası finalinde golü attım", "Tiki-taka'nın beyni olarak biliniyorum"] },
+    { name: "Pele", hints: ["Brezilya'da doğdum", "3 kez Dünya Kupası kazandım", "Santos'ta oynadım", "1000'den fazla gol attım", "Futbolun kralı olarak biliniyorum"] },
+    { name: "Diego Maradona", hints: ["Arjantin'de doğdum", "Napoli efsanesiyim", "1986 Dünya Kupası'nı tek başıma kazandırdım", "Tanrının Eli golünü attım", "10 numara denince akla gelen ilk isimim"] },
+    { name: "Virgil van Dijk", hints: ["Hollanda'da doğdum", "Southampton'da oynadım", "Liverpool'a rekor bedelle transfer oldum", "Dünyanın en iyi stoperi olarak kabul edildim", "4 numarayı giyerim"] }
+];
+
+let gwState = { currentPlayer: null, hintIndex: 0, score: 0, questionNum: 1, usedPlayers: [] };
+
+function initGuessWho() {
+    if (!gwState.currentPlayer || gwState.questionNum > 10) {
+        gwState = { currentPlayer: null, hintIndex: 0, score: 0, questionNum: 1, usedPlayers: [] };
+    }
+    if (!gwState.currentPlayer) pickNewGWPlayer();
+    renderGWHints();
+    
+    const guessBtn = document.getElementById("gw-guess-btn");
+    const skipBtn = document.getElementById("gw-skip-btn");
+    const input = document.getElementById("gw-guess-input");
+    
+    if (guessBtn) guessBtn.onclick = () => makeGuess();
+    if (skipBtn) skipBtn.onclick = () => skipGW();
+    if (input) input.onkeydown = (e) => { if (e.key === 'Enter') makeGuess(); };
+}
+
+function pickNewGWPlayer() {
+    const available = GUESSWHO_PLAYERS.filter(p => !gwState.usedPlayers.includes(p.name));
+    if (available.length === 0) {
+        gwState.usedPlayers = [];
+        return pickNewGWPlayer();
+    }
+    gwState.currentPlayer = available[Math.floor(Math.random() * available.length)];
+    gwState.hintIndex = 0;
+    gwState.usedPlayers.push(gwState.currentPlayer.name);
+}
+
+function renderGWHints() {
+    const area = document.getElementById("gw-hint-area");
+    const scoreEl = document.getElementById("gw-score");
+    const qnumEl = document.getElementById("gw-question-num");
+    const resultEl = document.getElementById("gw-result");
+    
+    if (!area || !gwState.currentPlayer) return;
+    
+    if (gwState.questionNum > 10) {
+        area.innerHTML = `<div style="text-align:center;"><h3 style="color:var(--accent-gold);">🏆 Oyun Bitti!</h3><p>Toplam Skor: <strong>${gwState.score}</strong>/10</p><button class="btn btn-primary" onclick="resetGW()">Tekrar Oyna</button></div>`;
+        return;
+    }
+    
+    const hintsToShow = gwState.currentPlayer.hints.slice(0, gwState.hintIndex + 1);
+    area.innerHTML = `<h4 style="color:var(--accent-gold);margin-bottom:1rem;">🔍 İpuçları:</h4>` +
+        hintsToShow.map((h, i) => `<div style="padding:0.5rem;margin-bottom:0.3rem;background:var(--surface-light);border-radius:8px;border-left:3px solid var(--accent-blue);"><strong>${i+1}.</strong> ${h}</div>`).join("");
+    
+    if (scoreEl) scoreEl.textContent = gwState.score;
+    if (qnumEl) qnumEl.textContent = gwState.questionNum;
+    if (resultEl) resultEl.innerHTML = "";
+}
+
+function makeGuess() {
+    const input = document.getElementById("gw-guess-input");
+    const resultEl = document.getElementById("gw-result");
+    if (!input || !gwState.currentPlayer) return;
+    
+    const guess = input.value.trim().toLowerCase();
+    if (!guess) return;
+    
+    const correct = gwState.currentPlayer.name.toLowerCase();
+    
+    if (guess === correct || correct.includes(guess) && guess.length > 3) {
+        gwState.score++;
+        if (resultEl) resultEl.innerHTML = `<div style="background:rgba(0,255,136,0.15);padding:1rem;border-radius:8px;text-align:center;"><strong style="color:var(--accent-neon);">✅ Doğru! ${gwState.currentPlayer.name}</strong></div>`;
+        
+        // Give coins
+        if (state.currentUser) {
+            const user = state.users.find(u => u.username === state.currentUser.username);
+            if (user) { user.coins = (user.coins || 0) + 50; state.currentUser.coins = user.coins; saveDatabase(); }
+        }
+        
+        setTimeout(() => { gwState.questionNum++; pickNewGWPlayer(); input.value = ""; renderGWHints(); }, 1500);
+    } else {
+        // Wrong - show next hint or reveal
+        if (gwState.hintIndex < gwState.currentPlayer.hints.length - 1) {
+            gwState.hintIndex++;
+            if (resultEl) resultEl.innerHTML = `<div style="background:rgba(255,77,109,0.15);padding:0.5rem;border-radius:8px;text-align:center;"><span style="color:#ff4d6d;">❌ Yanlış! Bir ipucu daha açıldı.</span></div>`;
+            renderGWHints();
+        } else {
+            if (resultEl) resultEl.innerHTML = `<div style="background:rgba(255,77,109,0.15);padding:1rem;border-radius:8px;text-align:center;"><strong style="color:#ff4d6d;">❌ Cevap: ${gwState.currentPlayer.name}</strong></div>`;
+            setTimeout(() => { gwState.questionNum++; pickNewGWPlayer(); input.value = ""; renderGWHints(); }, 2000);
+        }
+    }
+    input.value = "";
+}
+
+function skipGW() {
+    const resultEl = document.getElementById("gw-result");
+    if (resultEl && gwState.currentPlayer) {
+        resultEl.innerHTML = `<div style="background:rgba(255,165,0,0.15);padding:0.5rem;border-radius:8px;text-align:center;"><span style="color:orange;">⏭️ Pas! Cevap: ${gwState.currentPlayer.name}</span></div>`;
+    }
+    setTimeout(() => { gwState.questionNum++; pickNewGWPlayer(); document.getElementById("gw-guess-input").value = ""; renderGWHints(); }, 1500);
+}
+
+window.resetGW = function() {
+    gwState = { currentPlayer: null, hintIndex: 0, score: 0, questionNum: 1, usedPlayers: [] };
+    initGuessWho();
+};
+
+// --- PLAYER BADGES ---
+function getPlayerBadges(player) {
+    const badges = [];
+    
+    // League champion badge
+    const standings = calculateStandings ? null : null;
+    // Calculate standings inline
+    const teamStandings = state.teams.map(t => {
+        let pts = 0;
+        state.matches.filter(m => m.played).forEach(m => {
+            if (m.homeTeam === t.id) { if (m.homeScore > m.awayScore) pts += 3; else if (m.homeScore === m.awayScore) pts += 1; }
+            if (m.awayTeam === t.id) { if (m.awayScore > m.homeScore) pts += 3; else if (m.homeScore === m.awayScore) pts += 1; }
+        });
+        return { id: t.id, pts };
+    }).sort((a, b) => b.pts - a.pts);
+    
+    if (player.teamId && teamStandings.length > 0 && teamStandings[0].id === player.teamId && teamStandings[0].pts > 0) {
+        badges.push({ icon: "👑", text: "Lig Lideri", color: "#ffd700" });
+    }
+    
+    // Goal king
+    const maxGoals = Math.max(...state.players.map(p => p.goals || 0));
+    if ((player.goals || 0) > 0 && player.goals === maxGoals) {
+        badges.push({ icon: "⚽", text: "Gol Kralı", color: "#00ff88" });
+    }
+    
+    // Assist king
+    const maxAssists = Math.max(...state.players.map(p => p.assists || 0));
+    if ((player.assists || 0) > 0 && player.assists === maxAssists) {
+        badges.push({ icon: "🎯", text: "Asist Kralı", color: "#4dabf7" });
+    }
+    
+    // Top value
+    const maxValue = Math.max(...state.players.map(p => p.value || 100));
+    if ((player.value || 100) >= maxValue && maxValue > 100) {
+        badges.push({ icon: "💎", text: "En Değerli", color: "#9d4edd" });
+    }
+    
+    // Top OVR
+    const maxOvr = Math.max(...state.players.map(p => getPlayerOVR(p)));
+    if (getPlayerOVR(player) >= maxOvr) {
+        badges.push({ icon: "🌟", text: "En Yüksek OVR", color: "#ffc078" });
+    }
+    
+    return badges;
+}
+
+// --- WEEKLY TOP PLAYER WIDGET ---
+function getWeeklyTopPlayer(week) {
+    // Find match stats for this week with highest match_points
+    const weekMatches = state.matches.filter(m => m.week === week && m.played && m.statLogs);
+    let bestPlayer = null;
+    let bestPoints = 0;
+    let bestRating = 0;
+    
+    weekMatches.forEach(m => {
+        (m.statLogs || []).forEach(log => {
+            const pts = (log.stats && log.stats.match_points) || 0;
+            const rating = (log.stats && log.stats.match_rating) || 0;
+            if (pts > bestPoints || (pts === bestPoints && rating > bestRating)) {
+                bestPoints = pts;
+                bestRating = rating;
+                const p = state.players.find(x => x.id === log.playerId);
+                if (p) bestPlayer = { ...p, weekPoints: pts, weekRating: rating };
+            }
+        });
+    });
+    
+    return bestPlayer;
+}
+
+function renderWeeklyTopPlayerWidget() {
+    const container = document.getElementById("weekly-top-player-widget");
+    if (!container) return;
+    
+    const currentWeek = state.currentWeek || 1;
+    const topPlayer = getWeeklyTopPlayer(currentWeek);
+    
+    if (!topPlayer) {
+        container.innerHTML = `<p class="text-muted" style="font-size:0.9rem;">Bu hafta henüz veri yok</p>`;
+        return;
+    }
+    
+    container.innerHTML = `
+        <div style="display:flex;align-items:center;gap:1rem;">
+            <div style="background:linear-gradient(135deg,var(--accent-gold),#ff6b6b);width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">⭐</div>
+            <div>
+                <div style="font-weight:700;font-size:1.1rem;">${topPlayer.name}</div>
+                <div style="color:var(--text-muted);font-size:0.85rem;">${topPlayer.weekPoints} Puan | Rating: ${topPlayer.weekRating}</div>
+            </div>
+        </div>
+        <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+            <button class="btn btn-secondary btn-sm" onclick="changeWeeklyWidget(-1)" style="padding:2px 8px;">&laquo; Önceki</button>
+            <span style="color:var(--accent-gold);font-weight:bold;">${currentWeek}. Hafta</span>
+            <button class="btn btn-secondary btn-sm" onclick="changeWeeklyWidget(1)" style="padding:2px 8px;">Sonraki &raquo;</button>
+        </div>
+    `;
+}
+
+let weeklyWidgetWeek = null;
+window.changeWeeklyWidget = function(direction) {
+    if (weeklyWidgetWeek === null) weeklyWidgetWeek = state.currentWeek || 1;
+    weeklyWidgetWeek += direction;
+    if (weeklyWidgetWeek < 1) weeklyWidgetWeek = 1;
+    
+    const topPlayer = getWeeklyTopPlayer(weeklyWidgetWeek);
+    const container = document.getElementById("weekly-top-player-widget");
+    if (!container) return;
+    
+    if (!topPlayer) {
+        container.innerHTML = `<p class="text-muted" style="font-size:0.9rem;">${weeklyWidgetWeek}. hafta verisi yok</p>
+        <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+            <button class="btn btn-secondary btn-sm" onclick="changeWeeklyWidget(-1)" style="padding:2px 8px;">&laquo; Önceki</button>
+            <span style="color:var(--accent-gold);font-weight:bold;">${weeklyWidgetWeek}. Hafta</span>
+            <button class="btn btn-secondary btn-sm" onclick="changeWeeklyWidget(1)" style="padding:2px 8px;">Sonraki &raquo;</button>
+        </div>`;
+        return;
+    }
+    
+    container.innerHTML = `
+        <div style="display:flex;align-items:center;gap:1rem;">
+            <div style="background:linear-gradient(135deg,var(--accent-gold),#ff6b6b);width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">⭐</div>
+            <div>
+                <div style="font-weight:700;font-size:1.1rem;">${topPlayer.name}</div>
+                <div style="color:var(--text-muted);font-size:0.85rem;">${topPlayer.weekPoints} Puan | Rating: ${topPlayer.weekRating}</div>
+            </div>
+        </div>
+        <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+            <button class="btn btn-secondary btn-sm" onclick="changeWeeklyWidget(-1)" style="padding:2px 8px;">&laquo; Önceki</button>
+            <span style="color:var(--accent-gold);font-weight:bold;">${weeklyWidgetWeek}. Hafta</span>
+            <button class="btn btn-secondary btn-sm" onclick="changeWeeklyWidget(1)" style="padding:2px 8px;">Sonraki &raquo;</button>
+        </div>
+    `;
+};
+
+// --- PLAYER PROFILE ENHANCEMENT (Badges + Win %) ---
+const _origOpenPlayerProfile = window.openPlayerProfileModal;
+window.openPlayerProfileModal = function(playerId) {
+    if (typeof _origOpenPlayerProfile === 'function') {
+        _origOpenPlayerProfile(playerId);
+    }
+    
+    // Add badges
+    const player = state.players.find(p => p.id === playerId);
+    if (!player) return;
+    
+    const badges = getPlayerBadges(player);
+    const nameEl = document.getElementById("pp-player-name");
+    if (nameEl && badges.length > 0) {
+        const badgeHTML = badges.map(b => `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.08);padding:3px 10px;border-radius:20px;font-size:0.75rem;border:1px solid ${b.color};color:${b.color};margin-left:6px;">${b.icon} ${b.text}</span>`).join("");
+        nameEl.innerHTML = `<i class="fa-solid fa-id-card"></i> ${player.name} ${badgeHTML}`;
+    }
+    
+    // Add win percentage
+    if (player.teamId) {
+        const teamMatches = state.matches.filter(m => m.played && (m.homeTeam === player.teamId || m.awayTeam === player.teamId));
+        const wins = teamMatches.filter(m => {
+            if (m.homeTeam === player.teamId) return m.homeScore > m.awayScore;
+            return m.awayScore > m.homeScore;
+        }).length;
+        const winPct = teamMatches.length > 0 ? Math.round((wins / teamMatches.length) * 100) : 0;
+        
+        // Add win % to the info cards area
+        const ppValue = document.getElementById("pp-value");
+        if (ppValue && ppValue.parentElement && ppValue.parentElement.parentElement) {
+            const existing = document.getElementById("pp-win-pct-card");
+            if (existing) existing.remove();
+            
+            const winCard = document.createElement("div");
+            winCard.id = "pp-win-pct-card";
+            winCard.style.cssText = "flex:1;min-width:140px;background:var(--surface-dark);border-radius:12px;padding:1rem;text-align:center;";
+            winCard.innerHTML = `<div style="font-size:0.8rem;color:var(--text-muted);text-transform:uppercase;">Kazanma %</div><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-blue);">%${winPct}</div>`;
+            ppValue.parentElement.parentElement.appendChild(winCard);
+        }
+    }
+};
+
+// --- ADD BETTING TOGGLE TO ADMIN FIXTURES ---
+const _origRenderAdminFixtures = renderAdminFixturesList;
+function renderAdminFixturesListV2() {
+    _origRenderAdminFixtures();
+    // Add betting toggle buttons
+    const container = document.getElementById("admin-fixtures-list");
+    if (!container) return;
+    
+    const rows = container.querySelectorAll("tr");
+    const sortedMatches = [...state.matches].sort((a, b) => a.week - b.week);
+    
+    rows.forEach((row, idx) => {
+        if (sortedMatches[idx]) {
+            const m = sortedMatches[idx];
+            const actionsDiv = row.querySelector("div");
+            if (actionsDiv && !actionsDiv.querySelector(".bet-toggle-btn")) {
+                const betBtn = document.createElement("button");
+                betBtn.className = "btn btn-sm bet-toggle-btn";
+                betBtn.style.cssText = m.bettingOpen ? "background:var(--accent-neon);color:black;" : "background:rgba(255,255,255,0.05);color:var(--text-muted);";
+                betBtn.innerHTML = m.bettingOpen ? '<i class="fa-solid fa-dice"></i> Bahis Açık' : '<i class="fa-solid fa-dice"></i> Bahis Kapalı';
+                betBtn.onclick = () => toggleBetting(m.id);
+                actionsDiv.appendChild(betBtn);
+            }
+        }
+    });
+}
+
+// Override original
+window.renderAdminFixturesList = renderAdminFixturesListV2;
+
+// --- INIT NEW FEATURES ---
+const _origRenderAll = window.renderAll || function() {};
+
+// Patch renderAll if it exists
+function patchRenderAll() {
+    const originalRA = window.renderAll;
+    if (!originalRA) return;
+    
+    window.renderAll = function() {
+        originalRA();
+        // Render new features
+        try { renderWeeklyTopPlayerWidget(); } catch(e) {}
+    };
+}
+
+// Init on DOMContentLoaded
+document.addEventListener("DOMContentLoaded", function() {
+    setTimeout(() => {
+        initNewsHandlers();
+        initSocialHandlers();
+        patchRenderAll();
+        
+        // Add weekly widget to dashboard if not exists
+        const dashboardSection = document.getElementById("dashboard");
+        if (dashboardSection && !document.getElementById("weekly-top-player-widget")) {
+            const widget = document.createElement("div");
+            widget.className = "card mt-4";
+            widget.innerHTML = `
+                <div class="card-header"><h4><i class="fa-solid fa-star"></i> Haftanın Oyuncusu</h4></div>
+                <div id="weekly-top-player-widget" style="padding:1rem;"></div>
+            `;
+            // Insert at beginning of dashboard
+            dashboardSection.insertBefore(widget, dashboardSection.children[1] || null);
+            renderWeeklyTopPlayerWidget();
+        }
+    }, 1000);
+});
