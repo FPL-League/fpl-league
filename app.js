@@ -2814,9 +2814,6 @@ function initEventHandlers() {
             
             updateMatchValues(state.matches[matchIndex], statLogs);
 
-            // Auto-resolve bets for this match
-            resolveBetsForMatch(matchId);
-
             saveDatabase();
             
             document.getElementById("admin-match-form").reset();
@@ -3290,10 +3287,36 @@ function renderBetting() {
         if (m.played) {
             // Match is finished, show result
             const result = m.homeScore > m.awayScore ? 'home' : (m.homeScore < m.awayScore ? 'away' : 'draw');
-            statusHTML = `<div style="text-align:center;padding:0.5rem;background:rgba(0,255,136,0.1);border-radius:8px;margin-top:0.5rem;">
-                <strong>Sonuç: ${m.homeScore} - ${m.awayScore}</strong>
-                ${myBet ? (myBet.prediction === result ? '<br><span style="color:var(--accent-neon);">✅ Kazandınız! +' + (myBet.amount * 2) + ' Coin</span>' : '<br><span style="color:#ff4d6d;">❌ Kaybettiniz</span>') : ''}
-            </div>`;
+            const resultText = result === 'home' ? homeName + ' Kazandı' : result === 'away' ? awayName + ' Kazandı' : 'Beraberlik';
+            
+            let betDetailHTML = '';
+            if (myBet) {
+                const betPredText = myBet.prediction === 'home' ? homeName : myBet.prediction === 'away' ? awayName : 'Beraberlik';
+                const isWin = myBet.prediction === result;
+                
+                betDetailHTML = `
+                <div style="margin-top:0.8rem;padding:0.8rem;border-radius:10px;border:2px solid ${isWin ? 'var(--accent-neon)' : '#ff4d6d'};background:${isWin ? 'rgba(0,255,136,0.08)' : 'rgba(255,77,109,0.08)'};">
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+                        <div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;">Bahsiniz</div>
+                            <div style="font-weight:bold;color:${isWin ? 'var(--accent-neon)' : '#ff4d6d'};">${isWin ? '✅' : '❌'} ${betPredText}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;">Yatırılan</div>
+                            <div style="font-weight:bold;color:var(--accent-gold);">${myBet.amount} Coin</div>
+                        </div>
+                    </div>
+                    ${isWin ? (myBet.collected ? 
+                        `<div style="text-align:center;margin-top:0.6rem;"><span style="color:var(--accent-neon);font-weight:bold;"><i class="fa-solid fa-circle-check"></i> ${myBet.amount * 2} Coin alındı!</span></div>` :
+                        `<div style="text-align:center;margin-top:0.6rem;"><button class="btn btn-sm" onclick="collectBet('${myBet.id}')" style="background:linear-gradient(135deg,#00ff88,#00cc6a);color:black;font-weight:bold;padding:8px 20px;font-size:0.95rem;"><i class="fa-solid fa-hand-holding-dollar"></i> Parayı Al (${myBet.amount * 2} Coin)</button></div>`) 
+                    : `<div style="text-align:center;margin-top:0.5rem;color:#ff4d6d;font-size:0.85rem;">Bahsinizi kaybettiniz</div>`}
+                </div>`;
+            }
+            
+            statusHTML = `<div style="text-align:center;padding:0.6rem;background:rgba(0,255,136,0.1);border-radius:8px;margin-top:0.5rem;">
+                <div style="font-size:1.3rem;font-weight:800;">${m.homeScore} - ${m.awayScore}</div>
+                <div style="color:var(--accent-gold);font-size:0.85rem;margin-top:2px;">${resultText}</div>
+            </div>${betDetailHTML}`;
         } else if (m.matchStarted) {
             // Match is in progress - betting locked
             statusHTML = `<div style="text-align:center;padding:0.8rem;background:rgba(255,165,0,0.15);border-radius:8px;margin-top:0.5rem;border:1px solid rgba(255,165,0,0.3);">
@@ -3351,6 +3374,32 @@ window.startMatch = function(matchId) {
     alert("Maç başlatıldı! Bahisler kilitlendi. ⚽");
 };
 
+window.collectBet = function(betId) {
+    if (!state.currentUser) return;
+    const bet = state.bets.find(b => b.id === betId);
+    if (!bet || bet.collected) { alert("Bu bahis zaten tahsil edildi!"); return; }
+    if (bet.username !== state.currentUser.username) { alert("Bu bahis size ait değil!"); return; }
+    
+    // Verify the bet actually won
+    const match = state.matches.find(m => m.id === bet.matchId);
+    if (!match || !match.played) { alert("Maç henüz bitmedi!"); return; }
+    
+    const result = match.homeScore > match.awayScore ? 'home' : (match.homeScore < match.awayScore ? 'away' : 'draw');
+    if (bet.prediction !== result) { alert("Bu bahisi kaybettiniz, para alınamaz!"); return; }
+    
+    // Give 2x coins
+    const user = state.users.find(u => u.username === state.currentUser.username);
+    if (user) {
+        user.coins = (user.coins || 0) + (bet.amount * 2);
+        state.currentUser.coins = user.coins;
+    }
+    bet.collected = true;
+    
+    saveDatabase();
+    renderBetting();
+    renderAll();
+    alert("🎉 Tebrikler! " + (bet.amount * 2) + " Coin hesabınıza eklendi!");
+};
 window.placeBet = function(matchId) {
     if (!state.currentUser) { alert("Bahis yapmak için giriş yapmalısınız!"); return; }
     
