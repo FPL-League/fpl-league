@@ -2811,6 +2811,9 @@ function initEventHandlers() {
             
             updateMatchValues(state.matches[matchIndex], statLogs);
 
+            // Auto-resolve bets for this match
+            resolveBetsForMatch(matchId);
+
             saveDatabase();
             
             document.getElementById("admin-match-form").reset();
