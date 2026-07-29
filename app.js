@@ -199,6 +199,9 @@ function saveDatabase() {
             marketListings: state.marketListings,
             tradeOffers: state.tradeOffers,
             chatMessages: state.chatMessages,
+            news: state.news || [],
+            posts: state.posts || [],
+            bets: state.bets || [],
             currentWeek: state.currentWeek
         });
     }
