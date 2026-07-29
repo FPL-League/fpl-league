@@ -1394,6 +1394,14 @@ function initMatchEngine() {
     const homePos = [{ x: 10, y: 50 }, { x: 25, y: 50 }, { x: 40, y: 30 }, { x: 40, y: 70 }, { x: 45, y: 50 }];
     const awayPos = [{ x: 90, y: 50 }, { x: 75, y: 50 }, { x: 60, y: 30 }, { x: 60, y: 70 }, { x: 55, y: 50 }];
 
+    // Get player names from draft squad
+    const draftSlots = ['kaleci','defans','orta_saha_1','orta_saha_2','forvet'];
+    const homePlayerNames = draftSlots.map(slot => {
+        const pId = state.draftSquad ? state.draftSquad[slot] : null;
+        const player = pId ? state.players.find(p => p.id === pId) : null;
+        return player ? player.name.split(' ').pop() : (i => ['GK','DEF','MF1','MF2','FW'][i]);
+    });
+
     homePos.forEach((p, i) => {
         const dot = document.createElement("div");
         dot.className = "me-player-dot me-player-home";
@@ -1401,6 +1409,13 @@ function initMatchEngine() {
         dot.style.top = p.y + "%";
         dot.innerText = i+1;
         dot.id = "me-h-" + i;
+        // Add player name label
+        const label = document.createElement("div");
+        label.className = "me-player-label";
+        const pId = state.draftSquad ? state.draftSquad[draftSlots[i]] : null;
+        const player = pId ? state.players.find(pl => pl.id === pId) : null;
+        label.innerText = player ? player.name.split(' ').pop() : ['GK','DEF','MF','MF','FW'][i];
+        dot.appendChild(label);
         container.appendChild(dot);
     });
 
@@ -1411,6 +1426,11 @@ function initMatchEngine() {
         dot.style.top = p.y + "%";
         dot.innerText = i+1;
         dot.id = "me-a-" + i;
+        // Add player name label
+        const label = document.createElement("div");
+        label.className = "me-player-label";
+        label.innerText = ['GK','DEF','MF','MF','FW'][i];
+        dot.appendChild(label);
         container.appendChild(dot);
     });
     
@@ -3142,15 +3162,20 @@ function renderNews() {
     }
     
     const sorted = [...state.news].sort((a, b) => b.time - a.time);
+    const isAdmin = state.currentUser && state.currentUser.role === 'admin';
     container.innerHTML = sorted.map(n => `
-        <div style="background:var(--surface-dark);border-radius:12px;overflow:hidden;border:1px solid var(--border-color);">
-            ${n.image ? `<img src="${n.image}" alt="${n.title}" style="width:100%;max-height:300px;object-fit:cover;">` : ''}
+        <div style="background:var(--surface-dark);border-radius:16px;overflow:hidden;border:1px solid var(--border-color);transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            ${n.image ? `<div style="position:relative;"><img src="${n.image}" alt="${n.title}" style="width:100%;max-height:280px;object-fit:cover;"></div>` : ''}
             <div style="padding:1.2rem;">
-                <h3 style="margin:0 0 0.5rem 0;color:var(--accent-gold);font-size:1.3rem;">${n.title}</h3>
-                <p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:0.8rem;">${new Date(n.time).toLocaleDateString('tr-TR')} - ${new Date(n.time).toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'})}</p>
-                <p style="color:rgba(255,255,255,0.85);line-height:1.6;">${n.description}</p>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:0.6rem;">
+                    <i class="fa-solid fa-newspaper" style="color:var(--accent-neon);font-size:0.75rem;"></i>
+                    <span style="color:var(--accent-neon);font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Haber</span>
+                    <span style="color:var(--text-muted);font-size:0.75rem;margin-left:auto;"><i class="fa-regular fa-calendar"></i> ${new Date(n.time).toLocaleDateString('tr-TR')} ${new Date(n.time).toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'})}</span>
+                </div>
+                <h3 style="margin:0 0 0.6rem 0;color:white;font-size:1.2rem;font-weight:700;line-height:1.3;">${n.title}</h3>
+                <p style="color:rgba(255,255,255,0.7);line-height:1.6;font-size:0.95rem;margin:0;">${n.description}</p>
             </div>
-            ${state.currentUser && state.currentUser.role === 'admin' ? `<div style="padding:0 1.2rem 1rem;"><button class="btn btn-danger btn-sm" onclick="deleteNews('${n.id}')"><i class="fa-solid fa-trash"></i> Sil</button></div>` : ''}
+            ${isAdmin ? `<div style="padding:0 1.2rem 1rem;"><button class="btn btn-danger btn-sm" onclick="deleteNews('${n.id}')"><i class="fa-solid fa-trash"></i> Sil</button></div>` : ''}
         </div>
     `).join("");
 }
@@ -3158,17 +3183,26 @@ function renderNews() {
 function initNewsHandlers() {
     const btn = document.getElementById("news-publish-btn");
     if (!btn) return;
-    btn.onclick = () => {
+    btn.onclick = async () => {
         if (!state.currentUser || state.currentUser.role !== 'admin') { alert("Sadece admin haber yayınlayabilir!"); return; }
         const title = document.getElementById("news-title-input").value.trim();
-        const image = document.getElementById("news-image-input").value.trim();
+        const fileInput = document.getElementById("news-image-input");
         const desc = document.getElementById("news-desc-input").value.trim();
         if (!title || !desc) { alert("Başlık ve açıklama zorunludur!"); return; }
         
-        state.news.push({ id: "news_" + Date.now(), title, image, description: desc, time: Date.now() });
+        let imageData = '';
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            imageData = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(fileInput.files[0]);
+            });
+        }
+        
+        state.news.push({ id: "news_" + Date.now(), title, image: imageData, description: desc, time: Date.now() });
         saveDatabase();
         document.getElementById("news-title-input").value = "";
-        document.getElementById("news-image-input").value = "";
+        fileInput.value = "";
         document.getElementById("news-desc-input").value = "";
         renderNews();
         alert("Haber yayınlandı!");

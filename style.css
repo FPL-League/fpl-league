@@ -1620,3 +1620,18 @@ input:focus, select:focus {
 .pp-stat-box { background: var(--surface-light); padding: 0.6rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
 .pp-stat-label { font-size: 0.9rem; color: var(--text-muted); }
 .pp-stat-val { font-size: 1.2rem; font-weight: bold; color: white; }
+
+/* --- 2D SIM PLAYER LABELS --- */
+.me-player-dot { position: relative; }
+.me-player-label {
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+    pointer-events: none;
+}
