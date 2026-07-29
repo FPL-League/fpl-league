@@ -971,27 +971,31 @@ function updateMatchValues(match, statLogs) {
         if (!p) return;
         const s = pStats[pid];
         
+        // Check if this player had any stat entry in this match
+        const hasStats = statLogs.some(log => log.playerId === pid);
+        
         let valueChange = 0;
         
-        // Positive contributions
+        // Positive contributions (apply to all)
         valueChange += s.goals * 30;
         valueChange += s.assists * 20;
         if (p.position === 'kaleci') valueChange += s.saves * 5;
         if (p.position === 'defans') valueChange += s.tackles * 3;
         
-        // Match points rewards
+        // Match points rewards (apply to all with entries)
         if (s.matchPoints >= 1000) valueChange += 100;
         else if (s.matchPoints >= 500) valueChange += 50;
         else if (s.matchPoints >= 300) valueChange += 30;
         else if (s.matchPoints >= 100) valueChange += 10;
         
-        // Negative contributions
-        if (s.matchPoints < 100 && s.matchPoints > 0) valueChange -= 50;
-        
-        if (p.position === 'forvet' && s.goals === 0) valueChange -= 25;
-        if (p.position === 'orta_saha' && s.assists === 0) valueChange -= 20;
-        if (p.position === 'kaleci' && s.saves < 3) valueChange -= 40;
-        if (p.position === 'defans' && s.tackles < 8) valueChange -= 25;
+        // Negative penalties: ONLY for players who have at least one stat entry (i.e. they played)
+        if (hasStats) {
+            if (s.matchPoints < 100 && s.matchPoints > 0) valueChange -= 50;
+            if (p.position === 'forvet' && s.goals === 0) valueChange -= 25;
+            if (p.position === 'orta_saha' && s.assists === 0) valueChange -= 20;
+            if (p.position === 'kaleci' && s.saves < 3) valueChange -= 40;
+            if (p.position === 'defans' && s.tackles < 8) valueChange -= 25;
+        }
         
         valueChange -= s.yellows * 5;
         valueChange -= s.reds * 10;
