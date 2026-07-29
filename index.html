@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPL League & Market Portal</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="logo.png">
+    <!-- Google Fonts: Outfit & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=3">
+
+    <!-- Firebase SDK (v8 Compat for simplicity) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <img src="logo.png" alt="Site Logosu" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 10px rgba(123, 44, 191, 0.5);">
+                <div class="logo-text">
+                    <h1>FPL LEAGUE</h1>
+                    <span>DRAFT & MARKET</span>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-target="dashboard">
+                    <i class="fa-solid fa-house"></i> Ana Sayfa
+                </button>
+                <button class="nav-item" data-target="standings">
+                    <i class="fa-solid fa-list-ol"></i> Puan Durumu
+                </button>
+                <button class="nav-item" data-target="fixtures">
+                    <i class="fa-solid fa-calendar-days"></i> Fikstür & Sonuçlar
+                </button>
+                <button class="nav-item" data-target="players">
+                    <i class="fa-solid fa-users"></i> Oyuncular
+                </button>
+                <button class="nav-item" data-target="stats">
+                    <i class="fa-solid fa-chart-line"></i> İstatistikler
+                </button>
+                <button class="nav-item" data-target="draft">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> FPL Draft & Battle
+                </button>
+                <button class="nav-item" data-target="market" id="nav-market-btn">
+                    <i class="fa-solid fa-store"></i> Mağaza & Pazar
+                </button>
+                <button class="nav-item" data-target="news" id="nav-news-btn">
+                    <i class="fa-solid fa-newspaper"></i> Haberler
+                </button>
+                <button class="nav-item" data-target="social" id="nav-social-btn">
+                    <i class="fa-brands fa-x-twitter"></i> Sosyal (X)
+                </button>
+                <button class="nav-item" data-target="betting" id="nav-betting-btn">
+                    <i class="fa-solid fa-dice"></i> Bahis
+                </button>
+                <button class="nav-item" data-target="guesswho" id="nav-guesswho-btn">
+                    <i class="fa-solid fa-circle-question"></i> Ben Kimim?
+                </button>
+                <button class="nav-item admin-nav hidden" data-target="admin" id="sidebar-admin-btn">
+                    <i class="fa-solid fa-screwdriver-wrench"></i> Yönetici Paneli
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <p>&copy; 2026 FPL League</p>
+                <small>Ultimate Market Edition</small>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Topbar -->
+            <header class="topbar">
+                <div class="page-title-area">
+                    <h2 id="current-page-title">Ana Sayfa</h2>
+                    <p id="current-page-subtitle">Ligdeki son gelişmelere genel bir bakış.</p>
+                </div>
+                <div class="status-widgets">
+                    <!-- Coin widget -->
+                    <div class="widget hidden" id="top-coin-widget">
+                        <i class="fa-solid fa-coins" style="color: var(--accent-gold); filter: drop-shadow(0 0 4px var(--accent-gold));"></i>
+                        <div>
+                            <span class="label">Bakiye</span>
+                            <span class="value" id="user-coins-display" style="color: var(--accent-gold);">500</span>
+                        </div>
+                    </div>
+                    <div class="widget">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <div>
+                            <span class="label">Lider</span>
+                            <span class="value" id="top-team-widget">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-bar" id="auth-status-bar">
+                    <!-- Dynamic auth status -->
+                </div>
+            </header>
+
+            <!-- Content Screens -->
+            <div class="content-scroll">
+                
+                <!-- LIVE CHAT SCREEN -->
+                <section id="chat" class="content-section">
+                    <div class="card chat-card">
+                        <div class="card-header">
+                            <h4><i class="fa-solid fa-comments"></i> FPL Canlı Sohbet</h4>
+                            <p class="text-muted" style="margin: 0; font-size: 0.9rem;">Ligdeki diğer oyuncularla gerçek zamanlı mesajlaşın.</p>
+                        </div>
+                        <div class="chat-messages" id="chat-messages-container">
+                            <!-- Messages injected via JS -->
+                        </div>
+                        <form id="chat-input-form" class="chat-input-area">
+                            <input type="text" id="chat-input-text" placeholder="Bir mesaj yazın..." required autocomplete="off">
+                            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i></button>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- AUTH SCREEN -->
+                <section id="auth-screen" class="content-section">
+                    <div class="auth-container">
+                        <div class="auth-box card">
+                            <div class="auth-tabs">
+                                <button class="auth-tab-btn active" id="tab-login-btn">Giriş Yap</button>
+                                <button class="auth-tab-btn" id="tab-register-btn">Kayıt Ol</button>
+                            </div>
+
+                            <!-- Login Form -->
+                            <form id="login-form" class="auth-form">
+                                <h3>Oturum Aç</h3>
+                                <p>FPL League sistemine girmek için bilgilerinizi yazın.</p>
+                                <div class="form-group">
+                                    <label for="login-username">Oyun İçi ID</label>
+                                    <input type="text" id="login-username" placeholder="örn. messi10" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="login-password">Şifre</label>
+                                    <input type="password" id="login-password" placeholder="Şifreniz" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-full mt-4">Giriş Yap</button>
+                            </form>
+
+                            <!-- Register Form -->
+                            <form id="register-form" class="auth-form hidden">
+                                <h3>Yeni Kayıt</h3>
+                                <p>Sisteme oyuncu kartınızla kaydolun. Başlangıç gücünüz 70 OVR olacaktır.</p>
+                                <div class="form-group">
+                                    <label for="register-username">Oyun İçi ID</label>
+                                    <input type="text" id="register-username" placeholder="örn. messi10" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="register-nickname">Oyun İçi Ad</label>
+                                    <input type="text" id="register-nickname" placeholder="örn. Lionel Messi" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="register-position">Tercih Ettiğiniz Mevki</label>
+                                    <select id="register-position" required>
+                                        <option value="forvet">Forvet</option>
+                                        <option value="orta_saha" selected>Orta Saha</option>
+                                        <option value="defans">Defans</option>
+                                        <option value="kaleci">Kaleci</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="register-team">Takımınız</label>
+                                    <select id="register-team">
+                                        <option value="">Serbest Oyuncu (Takımsız)</option>
+                                        <!-- Dynamically filled in JS -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="register-password">Şifre</label>
+                                    <input type="password" id="register-password" placeholder="En az 6 karakter" minlength="6" required>
+                                </div>
+                                <button type="submit" class="btn btn-accent w-full mt-4">Kayıt Ol ve Kartını Oluştur</button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 1. DASHBOARD -->
+                <section id="dashboard" class="content-section active">
+                    <div class="dashboard-grid">
+                        <!-- Hero Welcome -->
+                        <div class="hero-card">
+                            <div class="hero-info">
+                                <h3>FPL Ultimate Market Arenası!</h3>
+                                <p>Kayıt olun, 500 Coin başlangıç bütçenizle paketler açarak kadronuzu güçlendirin, transfer pazarında oyuncu alıp satın ve rakiplerle takas yapın!</p>
+                                <button class="btn btn-primary" onclick="switchTab('market')">Mağaza & Market</button>
+                            </div>
+                            <div class="hero-badge">
+                                <i class="fa-solid fa-coins pulse"></i> FPL Market
+                            </div>
+                        </div>
+
+                        <!-- Live/Latest Matches -->
+                        <div class="card latest-matches-card">
+                            <div class="card-header">
+                                <h4><i class="fa-solid fa-angles-right"></i> Son Sonuçlar / Maçlar</h4>
+                                <button class="btn-link" onclick="switchTab('fixtures')">Tümünü Gör</button>
+                            </div>
+                            <div class="match-list" id="dashboard-matches">
+                                <!-- Dynamically filled -->
+                            </div>
+                        </div>
+
+                        <!-- Standings Snapshot -->
+                        <div class="card mini-standings-card">
+                            <div class="card-header">
+                                <h4><i class="fa-solid fa-ranking-star"></i> Zirve Yarışı</h4>
+                                <button class="btn-link" onclick="switchTab('standings')">Detaylı Tablo</button>
+                            </div>
+                            <div class="mini-table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Sıra</th>
+                                            <th>Takım</th>
+                                            <th>OM</th>
+                                            <th>AV</th>
+                                            <th>PTS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashboard-standings-body">
+                                        <!-- Dynamically filled -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Stats Leaderboard Snapshot -->
+                        <div class="card mini-stats-card">
+                            <div class="card-header">
+                                <h4><i class="fa-solid fa-award"></i> Liderler</h4>
+                                <button class="btn-link" onclick="switchTab('players')">Tüm İstatistikler</button>
+                            </div>
+                            <div class="leaders-container">
+                                <div class="leader-box">
+                                    <h5>Gol Kralı</h5>
+                                    <div class="leader-item" id="dashboard-top-scorer">
+                                        <!-- Filled in JS -->
+                                    </div>
+                                </div>
+                                <div class="leader-box">
+                                    <h5>Asist Kralı</h5>
+                                    <div class="leader-item" id="dashboard-top-assistant">
+                                        <!-- Filled in JS -->
+                                    </div>
+                                </div>
+                            </div>
+                        <!-- UT Stats Leaderboard Snapshot -->
+                        <div class="card mini-stats-card" style="margin-top: 1rem; border-color: var(--accent-neon);">
+                            <div class="card-header">
+                                <h4 style="color: var(--accent-neon);"><i class="fa-solid fa-fire"></i> UT Krallıkları</h4>
+                            </div>
+                            <div class="leaders-container">
+                                <div class="leader-box">
+                                    <h5>UT Gol Kralı</h5>
+                                    <div class="leader-item" id="dashboard-ut-scorer">
+                                        <!-- Filled in JS -->
+                                    </div>
+                                </div>
+                                <div class="leader-box">
+                                    <h5>UT Asist Kralı</h5>
+                                    <div class="leader-item" id="dashboard-ut-assistant">
+                                        <!-- Filled in JS -->
+                                    </div>
+                                </div>
+                                <div class="leader-box">
+                                    <h5>UT Kurtarış Kralı</h5>
+                                    <div class="leader-item" id="dashboard-ut-keeper">
+                                        <!-- Filled in JS -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. STANDINGS -->
+                <section id="standings" class="content-section">
+                    <div class="card table-card">
+                        <div class="card-header">
+                            <h4>Detaylı Puan Tablosu</h4>
+                        </div>
+                        <div class="table-container">
+                            <table class="full-table">
+                                <thead>
+                                    <tr>
+                                        <th>Sıra</th>
+                                        <th>Takım</th>
+                                        <th>OM</th>
+                                        <th>G</th>
+                                        <th>B</th>
+                                        <th>M</th>
+                                        <th>AG</th>
+                                        <th>YG</th>
+                                        <th>AV</th>
+                                        <th>PTS</th>
+                                        <th>Son 5</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="standings-body">
+                                    <!-- Dynamically filled -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. FIXTURES & MATCHES -->
+                <section id="fixtures" class="content-section">
+                    <div class="fixture-controls">
+                        <div class="week-selector">
+                            <button class="btn btn-secondary" id="prev-week-btn"><i class="fa-solid fa-chevron-left"></i> Önceki Hafta</button>
+                            <span id="current-week-display" class="current-week">1. Hafta</span>
+                            <button class="btn btn-secondary" id="next-week-btn">Sonraki Hafta <i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="fixtures-grid" id="fixtures-container">
+                        <!-- Dynamically filled with match cards -->
+                    </div>
+                </section>
+
+                <!-- 4. PLAYERS & CARDS -->
+                <section id="players" class="content-section">
+                    <div class="player-controls">
+                        <div class="search-bar-wrapper">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="player-search" placeholder="Oyuncu ara...">
+                        </div>
+                        <div class="filter-controls">
+                            <button class="btn btn-secondary active" data-filter="all">Tümü</button>
+                            <button class="btn btn-secondary" data-filter="forvet">Forvet</button>
+                            <button class="btn btn-secondary" data-filter="orta_saha">Orta Saha</button>
+                            <button class="btn btn-secondary" data-filter="defans">Defans</button>
+                            <button class="btn btn-secondary" data-filter="kaleci">Kaleci</button>
+                        </div>
+                    </div>
+                    <div class="cards-grid" id="players-cards-container">
+                        <!-- Dynamically filled with Fut-style cards -->
+                    </div>
+                </section>
+
+                <!-- STATS SCREEN -->
+                <section id="stats" class="content-section">
+                    <div class="stats-grid">
+                        <div class="card stat-leader-card" id="stat-card-goals">
+                            <div class="card-header"><h4>⚽ Gol Krallığı</h4></div>
+                            <div class="stat-list" id="stats-list-goals"></div>
+                        </div>
+                        <div class="card stat-leader-card" id="stat-card-assists">
+                            <div class="card-header"><h4>👟 Asist Krallığı</h4></div>
+                            <div class="stat-list" id="stats-list-assists"></div>
+                        </div>
+                        <div class="card stat-leader-card" id="stat-card-saves">
+                            <div class="card-header"><h4>🧤 Kurtarış Krallığı</h4></div>
+                            <div class="stat-list" id="stats-list-saves"></div>
+                        </div>
+                        <div class="card stat-leader-card" id="stat-card-tackles">
+                            <div class="card-header"><h4>🛡️ Top Çalma</h4></div>
+                            <div class="stat-list" id="stats-list-tackles"></div>
+                        </div>
+                        <div class="card stat-leader-card" id="stat-card-yellow">
+                            <div class="card-header"><h4>🟨 Sarı Kart</h4></div>
+                            <div class="stat-list" id="stats-list-yellow"></div>
+                        </div>
+                        <div class="card stat-leader-card" id="stat-card-red">
+                            <div class="card-header"><h4>🟥 Kırmızı Kart</h4></div>
+                            <div class="stat-list" id="stats-list-red"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. DRAFT SYSTEM -->
+                <section id="draft" class="content-section">
+                    <div class="draft-workspace">
+                        <div class="draft-left">
+                            <div class="draft-pitch">
+                                <div class="pitch-lines"></div>
+                                
+                                <!-- Pitch Slots (1-2-1 format) -->
+                                <div class="pitch-row attack-row">
+                                    <div class="draft-slot" data-pos="forvet" id="slot-fwd">
+                                        <div class="slot-placeholder">
+                                            <i class="fa-solid fa-plus"></i>
+                                            <span>FORVET</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pitch-row midfield-row">
+                                    <div class="draft-slot" data-pos="orta_saha" id="slot-mid1">
+                                        <div class="slot-placeholder">
+                                            <i class="fa-solid fa-plus"></i>
+                                            <span>SOL ORTA</span>
+                                        </div>
+                                    </div>
+                                    <div class="draft-slot" data-pos="orta_saha" id="slot-mid2">
+                                        <div class="slot-placeholder">
+                                            <i class="fa-solid fa-plus"></i>
+                                            <span>SAĞ ORTA</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pitch-row defense-row">
+                                    <div class="draft-slot" data-pos="defans" id="slot-def">
+                                        <div class="slot-placeholder">
+                                            <i class="fa-solid fa-plus"></i>
+                                            <span>DEFANS</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pitch-row keeper-row">
+                                    <div class="draft-slot" data-pos="kaleci" id="slot-gk">
+                                        <div class="slot-placeholder">
+                                            <i class="fa-solid fa-plus"></i>
+                                            <span>KALECİ</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="draft-right">
+                            <div class="draft-status-card">
+                                <h3>FPL Draft & Kadro</h3>
+                                <p style="font-size: 0.8rem; color: var(--text-muted);">Sadece açtığınız paketlerden çıkan veya transfer ettiğiniz envanterinizdeki oyuncuları draft edebilirsiniz.</p>
+                                <div class="chemistry-meter">
+                                    <span>Takım Gücü:</span>
+                                    <strong id="draft-rating">0</strong>
+                                </div>
+                                <div class="chemistry-meter">
+                                    <span>Kimya (Uyum):</span>
+                                    <div class="progress-bar-bg">
+                                        <div class="progress-bar-fill" id="draft-chem-bar" style="width: 0%"></div>
+                                    </div>
+                                    <strong id="draft-chemistry">0%</strong>
+                                </div>
+                                <button class="btn btn-secondary w-full" id="reset-draft-btn">Kadro Sıfırla</button>
+                                <button class="btn btn-primary w-full mt-2" id="start-battle-btn"><i class="fa-solid fa-gun"></i> SAVAŞ BAŞLAT (BATTLE)</button>
+                            </div>
+
+                            <div class="draft-selection-area hidden" id="draft-selection-panel">
+                                <h4 id="draft-selection-title">Envanterinden Seç</h4>
+                                <p>Sadece sahip olduğunuz oyuncular listelenir:</p>
+                                <div class="draft-candidates" id="draft-candidates-container">
+                                    <!-- Owned candidates matching position -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BATTLE SIMULATION ARENA -->
+                    <div class="battle-arena card mt-4 hidden" id="battle-arena-panel">
+                        <div class="card-header">
+                            <h4><i class="fa-solid fa-shield-halved"></i> FPL Draft Savaş Arenası</h4>
+                            <button class="btn-link" onclick="closeBattleArena()">Kapat</button>
+                        </div>
+                        <div class="battle-layout">
+                            <div class="battle-team-side home">
+                                <h5 id="battle-home-squad-name">Benim Kadrom</h5>
+                                <div class="battle-stats-indicator" id="battle-home-indicator">Güç: - | Kimya: -</div>
+                            </div>
+                            <div class="battle-vs-badge">VS</div>
+                            <div class="battle-team-side away">
+                                <h5 id="battle-away-squad-name">Rakip Kadro</h5>
+                                <div class="battle-stats-indicator" id="battle-away-indicator">Güç: - | Kimya: -</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 2D MATCH ENGINE PITCH -->
+                        <div id="match-engine-2d" class="match-engine-container">
+                            <div class="me-pitch" id="me-pitch-area">
+                                <div class="me-line me-center-line"></div>
+                                <div class="me-circle me-center-circle"></div>
+                                <div class="me-area me-penalty-left"></div>
+                                <div class="me-area me-penalty-right"></div>
+                                <!-- The Ball -->
+                                <div id="me-ball" class="me-ball"></div>
+                                <!-- Players Container -->
+                                <div id="me-players" class="me-players-container"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="battle-narration-box" id="battle-narration">
+                            <p class="narration-item italic">Savaşın başlaması bekleniyor...</p>
+                        </div>
+
+                        <div class="battle-score-board" id="battle-score-board">
+                            0 - 0
+                        </div>
+                        <div class="battle-actions">
+                            <button class="btn btn-accent" id="run-simulation-btn">Simülasyonu Çalıştır</button>
+                        </div>
+                    </div>
+
+                    <!-- Battle Result Overlay -->
+                    <div class="pack-reveal-overlay hidden" id="battle-result-overlay">
+                        <div class="reveal-card-container" style="text-align: center;">
+                            <h1 id="battle-result-title" style="font-size: 4rem; font-weight: 800; margin-bottom: 20px; text-transform: uppercase; text-shadow: 0 0 25px rgba(255,255,255,0.4);">KAZANDINIZ!</h1>
+                            <p id="battle-result-coins" style="color: var(--accent-gold); font-size: 1.8rem; font-weight: 800; margin-bottom: 30px;">💰 +30 FPL Coins</p>
+                            <button class="btn btn-primary" onclick="closeBattleResult()" style="padding: 12px 35px; font-size: 1.1rem;">Devam Et</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. FPL MARKET & PACKS -->
+                <section id="market" class="content-section">
+                    <div class="admin-tabs">
+                        <button class="market-tab-btn active" data-tab="market-shop-tab"><i class="fa-solid fa-box-open"></i> Paket Açılımı</button>
+                        <button class="market-tab-btn" data-tab="market-transfer-tab"><i class="fa-solid fa-list"></i> Transfer Pazarı</button>
+                        <button class="market-tab-btn" data-tab="market-sell-tab"><i class="fa-solid fa-hand-holding-dollar"></i> Oyuncularımı Sat</button>
+                        <button class="market-tab-btn" data-tab="market-trade-tab"><i class="fa-solid fa-right-left"></i> Takas Sistemi</button>
+                    </div>
+
+                    <!-- SUBTAB 1: PACK OPENING SHOP -->
+                    <div class="market-sub-section active" id="market-shop-tab">
+                        <div class="market-intro">
+                            <h3>FPL Mağazası</h3>
+                            <p>Bakiye coinlerinizi harcayarak rastgele oyuncu kartları çıkarın.</p>
+                        </div>
+                        <div class="packs-grid">
+                            <!-- Daily Free Pack -->
+                            <div class="pack-card daily-pack" style="background: linear-gradient(135deg, rgba(74, 201, 153, 0.15) 0%, rgba(30, 32, 50, 0.4) 100%); border-color: rgba(74, 201, 153, 0.4);">
+                                <div class="pack-cover" style="color: #4ac999;"><i class="fa-solid fa-gift"></i></div>
+                                <h4>Günlük Ücretsiz Paket</h4>
+                                <span class="pack-price" style="color: #4ac999;">ÜCRETSİZ (24 Saatte 1)</span>
+                                <p class="pack-description">70 - 99 OVR arası her seviyeden oyuncu çıkabilir.</p>
+                                <button class="btn btn-secondary w-full" id="daily-pack-btn" onclick="openDailyPack()" style="border-color: #4ac999; color: #fff;">Paketi Aç</button>
+                            </div>
+                            <!-- Bronze Pack -->
+                            <div class="pack-card bronze-pack">
+                                <div class="pack-cover"><i class="fa-solid fa-box"></i></div>
+                                <h4>Bronz Paket</h4>
+                                <span class="pack-price">150 FPL Coins</span>
+                                <p class="pack-description">70 - 75 OVR arası oyuncu kartı çıkarır.</p>
+                                <button class="btn btn-secondary w-full" onclick="openPack('bronze')">Paketi Aç</button>
+                            </div>
+                            <!-- Silver Pack -->
+                            <div class="pack-card silver-pack">
+                                <div class="pack-cover"><i class="fa-solid fa-cube"></i></div>
+                                <h4>Gümüş Paket</h4>
+                                <span class="pack-price">300 FPL Coins</span>
+                                <p class="pack-description">75 - 80 OVR arası oyuncu kartı çıkarır.</p>
+                                <button class="btn btn-secondary w-full" onclick="openPack('silver')">Paketi Aç</button>
+                            </div>
+                            <!-- Gold Pack -->
+                            <div class="pack-card gold-pack">
+                                <div class="pack-cover"><i class="fa-solid fa-gem"></i></div>
+                                <h4>Altın Paket</h4>
+                                <span class="pack-price">550 FPL Coins</span>
+                                <p class="pack-description">80 - 99 OVR arası seçkin oyuncular!</p>
+                                <button class="btn btn-primary w-full" onclick="openPack('gold')">Paketi Aç</button>
+                            </div>
+                        </div>
+
+                        <!-- DAILY SPIN SECTION -->
+                        <div class="daily-spin-container card mt-4" style="background: linear-gradient(135deg, rgba(255, 183, 3, 0.08) 0%, rgba(20, 22, 38, 0.4) 100%); border-color: rgba(255, 183, 3, 0.25);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; padding: 10px;">
+                                <div>
+                                    <h4 style="color: var(--accent-gold); font-weight: 800; font-size: 1.25rem;"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 8px;"></i> Günlük Şans Çarkı</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 5px;">24 Saatte bir çevirerek 50, 100, 150 veya 200 Coin kazanın (Tüm oranlar eşittir!).</p>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 25px;">
+                                    <div class="spin-reel" id="spin-reel-value" style="font-size: 2.2rem; font-weight: 900; background: rgba(0,0,0,0.3); border: 2px solid var(--accent-gold); color: var(--accent-gold); padding: 8px 25px; border-radius: 12px; min-width: 130px; text-align: center; text-shadow: 0 0 10px rgba(255,183,3,0.4); transition: transform 0.15s ease;">
+                                        ???
+                                    </div>
+                                    <button class="btn btn-accent" id="daily-spin-btn" onclick="spinDailyWheel()" style="padding: 12px 25px; background: var(--accent-gold); color: #000; font-weight: bold; border: none;">Çarkı Çevir</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pack Opening Screen / Reveal Area -->
+                        <div class="pack-reveal-overlay hidden" id="pack-reveal-screen">
+                            <div class="reveal-card-container">
+                                <h2 id="pack-reveal-title" style="color: var(--accent-gold); font-size: 2rem; margin-bottom: 20px; font-weight: 800; text-shadow: 0 0 15px rgba(255,183,3,0.5); text-transform: uppercase;">TEBRİKLER!</h2>
+                                <p id="pack-reveal-subtitle" style="color: var(--text-muted); margin-bottom: 30px; font-size: 1.1rem; font-weight: 600;">Paketten Yeni Bir Kart Çıkardınız!</p>
+                                <div class="reveal-animation-card" id="revealed-card-inner" style="transform: scale(1.3); margin-bottom: 40px;">
+                                    <!-- Dynamic FUT card will spin and appear here -->
+                                </div>
+                                <button class="btn btn-primary" onclick="closePackReveal()" style="padding: 12px 30px; font-size: 1rem;">Envantere Ekle ve Devam Et</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUBTAB 2: TRANSFER MARKET -->
+                    <div class="market-sub-section hidden" id="market-transfer-tab">
+                        <div class="card table-card">
+                            <div class="card-header">
+                                <h4>Pazarda Satışta Olan Oyuncular</h4>
+                            </div>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Kart</th>
+                                            <th>Oyuncu Adı</th>
+                                            <th>Mevki</th>
+                                            <th>OVR</th>
+                                            <th>Satıcı</th>
+                                            <th>Fiyat (Coins)</th>
+                                            <th>Satın Al</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transfer-market-list">
+                                        <!-- Dynamic listings -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUBTAB 3: SELL MY PLAYERS -->
+                    <div class="market-sub-section hidden" id="market-sell-tab">
+                        <div class="sell-split-layout">
+                            <div class="card">
+                                <h4>Sahip Olduğum Oyuncuları Listele</h4>
+                                <form id="market-sell-form">
+                                    <div class="form-group">
+                                        <label for="sell-player-select">Oyuncu Seç</label>
+                                        <select id="sell-player-select" required>
+                                            <option value="">Envanterinizden Oyuncu Seçin</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sell-price-input">Satış Fiyatı (FPL Coins)</label>
+                                        <input type="number" id="sell-price-input" min="10" max="9999" value="100" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-full">Satışa Çıkar</button>
+                                </form>
+                            </div>
+                            <div class="card">
+                                <h4>Aktif Satış İlanlarım</h4>
+                                <div class="table-container">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Oyuncu</th>
+                                                <th>Fiyat</th>
+                                                <th>İptal Et</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="my-listings-body">
+                                            <!-- Dynamic listings owned by user -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUBTAB 4: TRADE SYSTEM -->
+                    <div class="market-sub-section hidden" id="market-trade-tab">
+                        <div class="admin-grid">
+                            <!-- Send Trade Offer -->
+                            <div class="card">
+                                <h4>Takas Teklifi Gönder</h4>
+                                <form id="market-trade-form">
+                                    <div class="form-group">
+                                        <label for="trade-select-user">Takas Yapılacak Kullanıcı</label>
+                                        <select id="trade-select-user" required>
+                                            <option value="">Kullanıcı Seçin</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col">
+                                            <label for="trade-my-player">Vereceğiniz Oyuncum</label>
+                                            <select id="trade-my-player" required>
+                                                <option value="">Benim Oyuncum</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group col">
+                                            <label for="trade-target-player">Almak İstediğiniz Oyuncu</label>
+                                            <select id="trade-target-player" required>
+                                                <option value="">Karşı Tarafın Oyuncusu</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-accent w-full mt-4">Takas Teklifini İlet</button>
+                                </form>
+                            </div>
+
+                            <!-- Incoming Trade Offers -->
+                            <div class="card">
+                                <h4>Gelen Takas Teklifleri</h4>
+                                <div class="trade-offers-list" id="incoming-trades-list">
+                                    <!-- Dynamic trade cards -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 7. ADMIN PANEL -->
+                <section id="admin" class="content-section">
+                    <!-- Tab menu inside Admin panel -->
+                    <div class="admin-tabs">
+                        <button class="admin-tab-btn active" data-tab="admin-matches-tab">Maçlar & Skorlar</button>
+                        <button class="admin-tab-btn" data-tab="admin-teams-tab">Takım Yönetimi</button>
+                        <button class="admin-tab-btn" data-tab="admin-auth-tab">Kullanıcı Yetkileri</button>
+                    </div>
+
+                    <!-- SUBTAB 1: MATCHES & SCORES -->
+                    <div class="admin-sub-section active" id="admin-matches-tab">
+                        <div class="admin-grid">
+                            <div class="card admin-card">
+                                <div class="card-header">
+                                    <h4><i class="fa-solid fa-circle-check"></i> Maç Skoru ve İstatistik Girişi</h4>
+                                </div>
+                                <form id="admin-match-form">
+                                    <div class="form-group">
+                                        <label for="admin-select-match">Maç Seçin</label>
+                                        <select id="admin-select-match" required>
+                                            <!-- Oynanmamış maçlar listelenecek -->
+                                        </select>
+                                    </div>
+                                    <div class="score-input-row">
+                                        <div class="team-score-input">
+                                            <label id="admin-home-label">Ev Sahibi</label>
+                                            <input type="number" id="admin-home-score" min="0" required>
+                                        </div>
+                                        <div class="vs-text">VS</div>
+                                        <div class="team-score-input">
+                                            <label id="admin-away-label">Deplasman</label>
+                                            <input type="number" id="admin-away-score" min="0" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="stats-contributions">
+                                        <h5>Gol, Asist ve Kartları Eşleştir (Reytingleri Etkiler)</h5>
+                                        <div class="contributions-grid">
+                                            <div>
+                                                <h6 id="home-scorers-title">Ev Sahibi İstatistikleri</h6>
+                                                <div class="stat-entry-list" id="home-scorers-list">
+                                                    <!-- Dynamic input items -->
+                                                </div>
+                                                <button type="button" class="btn btn-secondary btn-sm" id="add-home-stat-row">
+                                                    <i class="fa-solid fa-plus"></i> Katkı Ekle
+                                                </button>
+                                            </div>
+                                            <div>
+                                                <h6 id="away-scorers-title">Deplasman İstatistikleri</h6>
+                                                <div class="stat-entry-list" id="away-scorers-list">
+                                                    <!-- Dynamic input items -->
+                                                </div>
+                                                <button type="button" class="btn btn-secondary btn-sm" id="add-away-stat-row">
+                                                    <i class="fa-solid fa-plus"></i> Katkı Ekle
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-full mt-4">Maç Sonucunu Kaydet (Reytingleri Günceller)</button>
+                                </form>
+                            </div>
+
+                            <!-- Create Match Fixture -->
+                            <div class="card admin-card">
+                                <div class="card-header">
+                                    <h4><i class="fa-solid fa-calendar-plus"></i> Yeni Maç Ekle (Fikstür)</h4>
+                                </div>
+                                <form id="admin-add-match-form">
+                                    <div class="form-group">
+                                        <label for="fixture-week">Hafta No</label>
+                                        <input type="number" id="fixture-week" min="1" max="20" value="1" required>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col">
+                                            <label for="fixture-home">Ev Sahibi</label>
+                                            <select id="fixture-home" required></select>
+                                        </div>
+                                        <div class="form-group col">
+                                            <label for="fixture-away">Deplasman</label>
+                                            <select id="fixture-away" required></select>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-accent w-full mt-4">Maçı Fikstüre Ekle</button>
+                                </form>
+                            </div>
+
+                            <!-- Manage Fixtures Table -->
+                            <div class="card admin-card" style="grid-column: span 2;">
+                                <div class="card-header">
+                                    <h4><i class="fa-solid fa-list-check"></i> Fikstürdeki Maçları Yönet (Düzenle & Sil)</h4>
+                                </div>
+                                <div class="table-container mt-4">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Hafta</th>
+                                                <th>Ev Sahibi</th>
+                                                <th>Deplasman</th>
+                                                <th>Skor / Durum</th>
+                                                <th>İşlem</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="admin-fixtures-list">
+                                            <!-- Dynamic list of matches -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUBTAB 2: TEAM MANAGEMENT -->
+                    <div class="admin-sub-section hidden" id="admin-teams-tab">
+                        <div class="admin-grid">
+                            <!-- Add Team -->
+                            <div class="card admin-card">
+                                <div class="card-header">
+                                    <h4><i class="fa-solid fa-shield-halved"></i> Yeni Takım Ekle</h4>
+                                </div>
+                                <form id="admin-add-team-form">
+                                    <div class="form-group">
+                                        <label for="team-name-input">Takım Adı</label>
+                                        <input type="text" id="team-name-input" placeholder="örn. Cihangir FC" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="team-short-input">Kısa Kısaltma (3 Harf)</label>
+                                        <input type="text" id="team-short-input" placeholder="örn. CHG" maxlength="3" required style="text-transform: uppercase;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="team-logo-input">Takım Logosu</label>
+                                        <input type="file" id="team-logo-input" accept="image/*">
+                                        <small style="color: var(--text-muted);">Boş bırakılırsa varsayılan ikon kullanılır.</small>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-full mt-4">Takımı Oluştur</button>
+                                </form>
+                            </div>
+
+                            <!-- Edit Registered Player properties -->
+                            <div class="card admin-card">
+                                <div class="card-header">
+                                    <h4><i class="fa-solid fa-user-pen"></i> Oyuncu Detaylarını Düzenle</h4>
+                                </div>
+                                <form id="admin-edit-player-form">
+                                    <div class="form-group">
+                                        <label for="edit-select-player">Oyuncu Seçin</label>
+                                        <select id="edit-select-player" required>
+                                            <option value="">Kayıtlı Oyuncu Seçin</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group col">
+                                            <label for="edit-player-team">Takımı</label>
+                                            <select id="edit-player-team" required>
+                                                <!-- Dynamic -->
+                                            </select>
+                                        </div>
+                                        <div class="form-group col">
+                                            <label for="edit-player-position">Mevki</label>
+                                            <select id="edit-player-position" required>
+                                                <option value="kaleci">Kaleci</option>
+                                                <option value="defans">Defans</option>
+                                                <option value="orta_saha">Orta Saha</option>
+                                                <option value="forvet">Forvet</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-accent w-full mt-4">Oyuncu Detaylarını Kaydet</button>
+                                </form>
+                            </div>
+                            
+                            <!-- Manage Teams Table -->
+                            <div class="card admin-card" style="grid-column: span 2;">
+                                <div class="card-header">
+                                    <h4><i class="fa-solid fa-list"></i> Kayıtlı Takımları Yönet (Düzenle & Sil)</h4>
+                                </div>
+                                <div class="table-container mt-4">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Kısaltma</th>
+                                                <th>Takım Adı</th>
+                                                <th>Kadro Genişliği</th>
+                                                <th>İşlem</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="admin-teams-list">
+                                            <!-- Dynamic -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUBTAB 3: USERS & PERMISSIONS -->
+                    <div class="admin-sub-section hidden" id="admin-auth-tab">
+                        <div class="card table-card">
+                            <div class="card-header">
+                                <h4>Kayıtlı Kullanıcılar & Rolleri</h4>
+                            </div>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Oyun İçi ID</th>
+                                            <th>Oyun İçi Ad</th>
+                                            <th>Mevcut Rol</th>
+                                            <th>İşlemler (Yetki Değiştir)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-users-table-body">
+                                        <!-- Dynamic rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reset Options -->
+                    <div class="card mt-4 admin-reset-card">
+                        <div class="card-header">
+                            <h4>Sistem Yönetimi</h4>
+                        </div>
+                        <p>Tüm verileri silip sistemi sıfırlayabilirsiniz. (İlk admin hesabı korunacaktır: admin / admin123)</p>
+                        <button class="btn btn-primary" id="recalc-values-btn" style="margin-right: 10px;">Değerleri Yeniden Hesapla</button>
+                        <button class="btn btn-danger" id="reset-system-btn">Tüm Lig Verilerini Sıfırla</button>
+                    </div>
+                </section>
+
+                <section id="screen-news" class="screen hidden">
+                    <div class="page-header">
+                        <h2>Haberler</h2>
+                    </div>
+                    <div id="news-container"></div>
+                </section>
+
+                <section id="screen-social" class="screen hidden">
+                    <div class="page-header">
+                        <h2>Sosyal (X)</h2>
+                    </div>
+                    <div style="padding: 1rem;">
+                        <textarea id="social-post-input" placeholder="Neler oluyor?" style="width: 100%; min-height: 80px;"></textarea>
+                        <button id="social-post-btn" class="btn btn-primary mt-2">Paylaş</button>
+                    </div>
+                    <div id="social-feed-container"></div>
+                </section>
+
+                <section id="screen-betting" class="screen hidden">
+                    <div class="page-header">
+                        <h2>Bahis</h2>
+                        <p>Açık olan maçlara Coin yatırın</p>
+                    </div>
+                    <div id="betting-matches-container"></div>
+                </section>
+
+                <section id="screen-guesswho" class="screen hidden">
+                    <div class="page-header">
+                        <h2>Ben Kimim?</h2>
+                        <p>Gerçek futbolcuları tahmin edin ve Coin kazanın!</p>
+                    </div>
+                    <div id="guesswho-game-area" style="padding: 1rem;">
+                        <input type="text" placeholder="Tahmininiz..." style="padding: 0.5rem; width: 100%; max-width: 300px;">
+                        <button class="btn btn-primary mt-2">Tahmin Et</button>
+                        <div class="hints mt-4"></div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Team Detail Modal (Squad List) -->
+    <div id="team-detail-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 600px; display: flex; flex-direction: column; max-height: 85vh;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <img id="team-detail-logo" src="" alt="logo" style="width: 50px; height: 50px; object-fit: contain;">
+                    <h3 id="team-detail-name" style="margin: 0; font-size: 1.5rem;">Takım Adı</h3>
+                </div>
+                <button class="btn btn-secondary" onclick="closeTeamDetailModal()">Kapat</button>
+            </div>
+            
+            <div style="background: var(--surface-dark); border-radius: 12px; padding: 1rem; flex: 1; overflow-y: auto;">
+                <h4 style="margin-bottom: 1rem; color: var(--accent-gold);"><i class="fa-solid fa-users"></i> Takım Kadrosu</h4>
+                <div id="team-detail-bench" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Edit Modal -->
+    <div id="team-edit-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3>Takımı Düzenle</h3>
+            <form id="team-edit-form">
+                <input type="hidden" id="edit-modal-team-id">
+                
+                <div class="form-group mt-4">
+                    <label for="edit-modal-team-name">Takım Adı</label>
+                    <input type="text" id="edit-modal-team-name" required>
+                </div>
+                
+                <div class="form-group mt-2">
+                    <label for="edit-modal-team-short">Kısa Kısaltma (3 Harf)</label>
+                    <input type="text" id="edit-modal-team-short" maxlength="3" required style="text-transform: uppercase;">
+                </div>
+
+                <div class="form-group mt-2">
+                    <label for="edit-modal-team-logo">Yeni Logo Yükle</label>
+                    <input type="file" id="edit-modal-team-logo" accept="image/*">
+                    <small style="color: var(--text-muted);">Değiştirmek istemiyorsanız boş bırakın.</small>
+                </div>
+                
+                <div class="form-row mt-4" style="gap: 10px;">
+                    <button type="submit" class="btn btn-primary col">Kaydet</button>
+                    <button type="button" class="btn btn-secondary col" onclick="closeTeamEditModal()">İptal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Player Profile Modal -->
+    <div id="player-profile-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 700px; display: flex; flex-direction: column; max-height: 90vh;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 id="pp-player-name" style="margin: 0; font-size: 1.5rem;"><i class="fa-solid fa-id-card"></i> Oyuncu Profili</h3>
+                <button class="btn btn-secondary" onclick="closePlayerProfileModal()">Kapat</button>
+            </div>
+            
+            <!-- Top Info Row -->
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                <div style="flex:1; min-width:140px; background: var(--surface-dark); border-radius:12px; padding:1rem; text-align:center;">
+                    <div style="font-size:0.8rem; color: var(--text-muted); text-transform:uppercase;">ID</div>
+                    <div id="pp-id" style="font-size:1rem; font-weight:bold; color: var(--accent-blue);">-</div>
+                </div>
+                <div style="flex:1; min-width:140px; background: var(--surface-dark); border-radius:12px; padding:1rem; text-align:center;">
+                    <div style="font-size:0.8rem; color: var(--text-muted); text-transform:uppercase;">Mevki</div>
+                    <div id="pp-position" style="font-size:1.2rem; font-weight:bold; color: var(--accent-neon);">-</div>
+                </div>
+                <div style="flex:1; min-width:140px; background: var(--surface-dark); border-radius:12px; padding:1rem; text-align:center;">
+                    <div style="font-size:0.8rem; color: var(--text-muted); text-transform:uppercase;">Rating (OVR)</div>
+                    <div id="pp-ovr" style="font-size:1.5rem; font-weight:bold; color: var(--accent-gold);">-</div>
+                </div>
+                <div style="flex:1; min-width:140px; background: linear-gradient(135deg, #1a472a, #2d6a4f); border-radius:12px; padding:1rem; text-align:center; border: 2px solid var(--accent-neon);">
+                    <div style="font-size:0.8rem; color: var(--text-muted); text-transform:uppercase;">Piyasa Değeri</div>
+                    <div id="pp-value" style="font-size:1.5rem; font-weight:bold; color: var(--accent-neon);">-</div>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div style="background: var(--surface-dark); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                <h4 style="margin-bottom: 0.8rem; color: var(--accent-gold);"><i class="fa-solid fa-chart-bar"></i> İstatistikler</h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+                    <div class="pp-stat-box"><span class="pp-stat-label">⚽ Gol</span><span id="pp-goals" class="pp-stat-val">0</span></div>
+                    <div class="pp-stat-box"><span class="pp-stat-label">🎯 Asist</span><span id="pp-assists" class="pp-stat-val">0</span></div>
+                    <div class="pp-stat-box"><span class="pp-stat-label">🧤 Kurtarış</span><span id="pp-saves" class="pp-stat-val">0</span></div>
+                    <div class="pp-stat-box"><span class="pp-stat-label">🦶 Müdahale</span><span id="pp-tackles" class="pp-stat-val">0</span></div>
+                    <div class="pp-stat-box"><span class="pp-stat-label">🟨 Sarı Kart</span><span id="pp-yellows" class="pp-stat-val">0</span></div>
+                    <div class="pp-stat-box"><span class="pp-stat-label">🟥 Kırmızı Kart</span><span id="pp-reds" class="pp-stat-val">0</span></div>
+                </div>
+            </div>
+
+            <!-- Value History Chart -->
+            <div style="background: var(--surface-dark); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                <h4 style="margin-bottom: 0.8rem; color: var(--accent-gold);"><i class="fa-solid fa-chart-line"></i> Değer Geçmişi</h4>
+                <canvas id="pp-value-chart" width="650" height="200" style="width:100%; max-height:200px;"></canvas>
+            </div>
+
+            <!-- Value History Table -->
+            <div style="background: var(--surface-dark); border-radius: 12px; padding: 1rem; max-height: 200px; overflow-y: auto;">
+                <h4 style="margin-bottom: 0.8rem; color: var(--accent-gold);"><i class="fa-solid fa-table"></i> Haftalık Değer Tablosu</h4>
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--accent-gold);">
+                            <th style="text-align:left; padding:0.4rem;">Hafta</th>
+                            <th style="text-align:right; padding:0.4rem;">Değer</th>
+                            <th style="text-align:right; padding:0.4rem;">Değişim</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pp-history-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=3"></script>
+</body>
+</html>
