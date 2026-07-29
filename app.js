@@ -3196,8 +3196,8 @@ function renderSocial() {
         <div style="background:var(--surface-dark);border-radius:12px;padding:1rem;border:1px solid var(--border-color);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
                 <div>
-                    <strong style="color:var(--accent-blue);">@${p.sender}</strong>
-                    <span style="color:var(--text-muted);font-size:0.8rem;margin-left:8px;">${p.nickname}</span>
+                    <strong style="color:var(--accent-blue);">${p.nickname}</strong>
+                    <span style="color:var(--text-muted);font-size:0.8rem;margin-left:8px;">@${p.sender}</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;">
                     <span style="color:var(--text-muted);font-size:0.75rem;">${new Date(p.time).toLocaleDateString('tr-TR')} ${new Date(p.time).toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'})}</span>
@@ -3279,12 +3279,21 @@ function renderBetting() {
         const myBet = state.bets.find(b => b.matchId === m.id && state.currentUser && b.username === state.currentUser.username);
         
         let statusHTML = '';
+        const isAdmin = state.currentUser && state.currentUser.role === 'admin';
+        
         if (m.played) {
             // Match is finished, show result
             const result = m.homeScore > m.awayScore ? 'home' : (m.homeScore < m.awayScore ? 'away' : 'draw');
             statusHTML = `<div style="text-align:center;padding:0.5rem;background:rgba(0,255,136,0.1);border-radius:8px;margin-top:0.5rem;">
                 <strong>Sonuç: ${m.homeScore} - ${m.awayScore}</strong>
                 ${myBet ? (myBet.prediction === result ? '<br><span style="color:var(--accent-neon);">✅ Kazandınız! +' + (myBet.amount * 2) + ' Coin</span>' : '<br><span style="color:#ff4d6d;">❌ Kaybettiniz</span>') : ''}
+            </div>`;
+        } else if (m.matchStarted) {
+            // Match is in progress - betting locked
+            statusHTML = `<div style="text-align:center;padding:0.8rem;background:rgba(255,165,0,0.15);border-radius:8px;margin-top:0.5rem;border:1px solid rgba(255,165,0,0.3);">
+                <i class="fa-solid fa-futbol fa-spin" style="color:orange;margin-right:6px;"></i>
+                <strong style="color:orange;">Maç Oynanıyor!</strong>
+                ${myBet ? '<br><span style="color:#9d4edd;font-size:0.85rem;">Bahsiniz: ' + (myBet.prediction === 'home' ? homeName : myBet.prediction === 'away' ? awayName : 'Beraberlik') + ' - ' + myBet.amount + ' Coin</span>' : '<br><span style="color:var(--text-muted);font-size:0.85rem;">Bahis süresi kapandı</span>'}
             </div>`;
         } else if (myBet) {
             statusHTML = `<div style="text-align:center;padding:0.5rem;background:rgba(123,44,191,0.15);border-radius:8px;margin-top:0.5rem;">
@@ -3303,6 +3312,14 @@ function renderBetting() {
             </div>`;
         }
         
+        // Admin: Match Started button
+        let adminBtns = '';
+        if (isAdmin && !m.played && m.bettingOpen) {
+            adminBtns = `<div style="margin-top:0.5rem;text-align:center;">
+                ${!m.matchStarted ? `<button class="btn btn-sm" onclick="startMatch('${m.id}')" style="background:orange;color:black;font-weight:bold;"><i class="fa-solid fa-play"></i> Maç Başladı</button>` : `<span style="color:orange;font-size:0.85rem;"><i class="fa-solid fa-circle-check"></i> Maç başlatıldı</span>`}
+            </div>`;
+        }
+        
         return `
         <div style="background:var(--surface-dark);border-radius:12px;padding:1.2rem;border:1px solid var(--border-color);">
             <div style="text-align:center;color:var(--text-muted);font-size:0.8rem;margin-bottom:0.5rem;">${m.week}. Hafta</div>
@@ -3312,12 +3329,29 @@ function renderBetting() {
                 <div style="text-align:center;">${awaylogo}<div style="margin-top:4px;font-weight:600;">${awayName}</div></div>
             </div>
             ${statusHTML}
+            ${adminBtns}
         </div>`;
     }).join("");
 }
 
+window.startMatch = function(matchId) {
+    const match = state.matches.find(m => m.id === matchId);
+    if (!match) return;
+    if (!confirm("Maçı başlatmak istediğinize emin misiniz? Bahisler kilitlenecek!")) return;
+    match.matchStarted = true;
+    saveDatabase();
+    renderBetting();
+    renderAll();
+    alert("Maç başlatıldı! Bahisler kilitlendi. ⚽");
+};
+
 window.placeBet = function(matchId) {
     if (!state.currentUser) { alert("Bahis yapmak için giriş yapmalısınız!"); return; }
+    
+    // Check if match started
+    const matchCheck = state.matches.find(m => m.id === matchId);
+    if (matchCheck && matchCheck.matchStarted) { alert("Maç başladı! Artık bahis yapılamaz."); return; }
+    
     const predEl = document.getElementById("bet-pred-" + matchId);
     const amountEl = document.getElementById("bet-amount-" + matchId);
     if (!predEl || !amountEl) return;
@@ -3387,21 +3421,26 @@ window.toggleBetting = function(matchId) {
 
 // --- GUESS WHO GAME ---
 const GUESSWHO_PLAYERS = [
-    { name: "Lionel Messi", hints: ["Arjantin'de doğdum", "6 kez Ballon d'Or kazandım", "Barcelona'da 21 yıl oynadım", "Dünya Kupası 2022 şampiyonuyum", "10 numarayı giyerim"] },
-    { name: "Cristiano Ronaldo", hints: ["Portekiz'de doğdum", "5 kez Ballon d'Or kazandım", "Real Madrid'de en çok gol atan oyuncuyum", "CR7 lakabımla biliniyorum", "Suudi Arabistan'da oynuyorum"] },
-    { name: "Neymar", hints: ["Brezilya'da doğdum", "Santos'ta başladım", "Barcelona'da MSN üçlüsünün bir parçasıydım", "PSG'ye rekor bedelle transfer oldum", "10 numarayı giyerim"] },
-    { name: "Kylian Mbappe", hints: ["Fransa'da doğdum", "Monaco'da kariyerime başladım", "19 yaşında Dünya Kupası kazandım", "PSG'den Real Madrid'e transfer oldum", "Dünyanın en hızlı futbolcularından biriyim"] },
-    { name: "Erling Haaland", hints: ["Norveç'te doğdum", "Red Bull Salzburg'da patladım", "Dortmund'da yıldızlaştım", "Manchester City'deyim", "Premier League gol rekorunu kırdım"] },
-    { name: "Luka Modric", hints: ["Hırvatistan'da doğdum", "Tottenham'da oynadım", "Real Madrid'de efsane oldum", "2018 Ballon d'Or'u kazandım", "10 numarayı giyerim"] },
-    { name: "Robert Lewandowski", hints: ["Polonya'da doğdum", "Dortmund'da başladım", "Bayern Münih'te rekorlar kırdım", "Barcelona'ya transfer oldum", "Yılın futbolcusu seçildim"] },
-    { name: "Mohamed Salah", hints: ["Mısır'da doğdum", "Roma'da oynadım", "Liverpool'un yıldızıyım", "Premier League gol kralı oldum", "11 numarayı giyerim"] },
-    { name: "Zinedine Zidane", hints: ["Fransa'da doğdum", "Juventus'ta oynadım", "Real Madrid efsanesiyim", "Dünya Kupası finalinde kafa attım", "Şampiyonlar Ligi'ni hem oyuncu hem teknik direktör olarak kazandım"] },
-    { name: "Ronaldinho", hints: ["Brezilya'da doğdum", "PSG'de başladım", "Barcelona'da sihir yaptım", "2005 Ballon d'Or sahibiyim", "Samba futbolunun kralıyım"] },
-    { name: "Thierry Henry", hints: ["Fransa'da doğdum", "Monaco'da başladım", "Arsenal efsanesiyim", "Yenilmezler takımının golcüsüydüm", "Premier League'in en iyi forvetlerinden biriyim"] },
-    { name: "Andres Iniesta", hints: ["İspanya'da doğdum", "La Masia mezunuyum", "Barcelona'da 22 yıl oynadım", "2010 Dünya Kupası finalinde golü attım", "Tiki-taka'nın beyni olarak biliniyorum"] },
-    { name: "Pele", hints: ["Brezilya'da doğdum", "3 kez Dünya Kupası kazandım", "Santos'ta oynadım", "1000'den fazla gol attım", "Futbolun kralı olarak biliniyorum"] },
-    { name: "Diego Maradona", hints: ["Arjantin'de doğdum", "Napoli efsanesiyim", "1986 Dünya Kupası'nı tek başıma kazandırdım", "Tanrının Eli golünü attım", "10 numara denince akla gelen ilk isimim"] },
-    { name: "Virgil van Dijk", hints: ["Hollanda'da doğdum", "Southampton'da oynadım", "Liverpool'a rekor bedelle transfer oldum", "Dünyanın en iyi stoperi olarak kabul edildim", "4 numarayı giyerim"] }
+    { name: "Gianluigi Buffon", hints: ["İtalya milli takımında 176 maça çıktım", "Parma'dan Juventus'a transfer oldum", "Kaleci pozisyonunda oynuyorum", "2006 Dünya Kupası'nı kazandım", "40 yaşından sonra bile üst düzey oynadım"] },
+    { name: "Karim Benzema", hints: ["Lyon altyapısından çıktım", "Fransa milli takımından uzun süre uzak kaldım", "2022 Ballon d'Or sahibiyim", "Real Madrid'de 14 sezon oynadım", "Suudi Arabistan'a transfer oldum"] },
+    { name: "Paolo Maldini", hints: ["Kariyerim boyunca sadece bir kulüpte oynadım", "Babam da aynı kulüpte oynamıştı", "Sol bek ve stoper olarak oynadım", "5 kez Şampiyonlar Ligi kazandım", "AC Milan efsanesiyim"] },
+    { name: "Xavi Hernandez", hints: ["La Masia'da yetiştim", "Tiki-taka'nın mimarlarından biriyim", "İspanya ile 2010 Dünya Kupası'nı kazandım", "Al-Sadd'da oynadım", "Barcelona'nın teknik direktörü oldum"] },
+    { name: "Zlatan Ibrahimovic", hints: ["İsveçli bir futbolcuyum", "11 farklı kulüpte oynadım", "Taekwondo siyah kuşak sahibiyim", "Kendimi aslan olarak tanımlarım", "Akriobatik golleriyle ünlüyüm"] },
+    { name: "Andrea Pirlo", hints: ["Brescia'da kariyerime başladım", "Regista pozisyonunda oynadım", "2006 Dünya Kupası'nı kazandım", "Panenka penaltılarımla ünlüyüm", "AC Milan ve Juventus'ta oynadım"] },
+    { name: "Samuel Eto'o", hints: ["Kamerun milli takımı kaptanıydım", "Barcelona'da 3 sezon oynadım", "Inter Milan'da üçlü kazandım", "Afrika'nın en iyi futbolcusu seçildim", "Mallorca'da yıldızlaştım"] },
+    { name: "Didier Drogba", hints: ["Fildişi Sahili'ndenim", "Marsilya'dan transfer oldum", "Şampiyonlar Ligi finalinde penaltı attım", "Chelsea efsanesiyim", "Final maçlarında gol atmasıyla ünlüyüm"] },
+    { name: "Fabio Cannavaro", hints: ["2006 Ballon d'Or'u kazanan tek defans oyuncusuyum", "İtalyan milli takımıyla Dünya Kupası kazandım", "Real Madrid'de oynadım", "Napoli altyapısından geldim", "1.76m boyuyla stoperlere meydan okudum"] },
+    { name: "Ryan Giggs", hints: ["Kariyerim boyunca tek bir kulüpte oynadım", "Sol kanatta oynardım", "Premier League'de 13 şampiyonluk kazandım", "Galli bir futbolcuyum", "963 maçla kulüp rekoru kırdım"] },
+    { name: "Philipp Lahm", hints: ["Alman milli takımı kaptanıydım", "Hem sağ bek hem orta saha oynadım", "2014 Dünya Kupası'nı kaldırdım", "Bayern Münih'te tüm kariyerimi geçirdim", "30 yaşında milli takımı bıraktım"] },
+    { name: "Raul Gonzalez", hints: ["Real Madrid'in en genç golcüsüydüm", "Şampiyonlar Ligi'nde uzun süre gol rekorunu elinde tuttum", "İspanyol bir forvetim", "7 numarayı giydim", "Schalke 04'te de oynadım"] },
+    { name: "George Best", hints: ["Kuzey İrlandalı bir futbolcuyum", "Manchester United efsanesiyim", "1968 Ballon d'Or sahibiyim", "Saha dışı yaşantısıyla da gündem oldum", "El Beatle lakabıyla tanındım"] },
+    { name: "Marco van Basten", hints: ["Hollandalı bir forvetim", "1988 Avrupa Şampiyonası finalinde vole gol attım", "3 kez Ballon d'Or kazandım", "AC Milan'da oynadım", "Sakatlık yüzünden 28 yaşında emekli oldum"] },
+    { name: "Socrates", hints: ["Brezilyalı bir orta saha oyuncusuyum", "Doktor diplomam var", "Corinthians Demokrasisi hareketinin lideriyim", "Topuk paslarımla ünlüyüm", "1982 Dünya Kupası'nda Brezilya'nın yıldızıydım"] },
+    { name: "Ferenc Puskas", hints: ["Macar bir futbolcuyum", "Real Madrid'de de oynadım", "84 maçta 83 gol attım", "FIFA en iyi gol ödülüne adım verildi", "Galloping Major lakabıyla tanındım"] },
+    { name: "Roberto Carlos", hints: ["Sol ayağımla inanılmaz frikik golleri attım", "Fransa'ya karşı fizik kurallarını çiğneyen gol attım", "Real Madrid'de 11 sezon oynadım", "Brezilyalı bir sol bekiyim", "2002 Dünya Kupası şampiyonuyum"] },
+    { name: "Cafu", hints: ["Brezilyalı bir sağ bekiyim", "2 Dünya Kupası finali kazandım", "Roma ve AC Milan'da oynadım", "Pendolino lakabıyla tanındım", "Milli takımda en çok forma giyen oyuncuyum"] },
+    { name: "Gheorghe Hagi", hints: ["Romanya'nın en büyük futbolcusuyum", "Galatasaray'da efsane oldum", "Real Madrid ve Barcelona'da da oynadım", "Karpatların Maradonası lakabım var", "Sol ayağımla harika goller attım"] },
+    { name: "Jay-Jay Okocha", hints: ["Nijeryalı bir futbolcuyum", "Bolton Wanderers'ın efsanesiyim", "PSG'de oynadım", "O kadar iyi ki adımı iki kere söylerler", "Dribling ve frikik uzmanıyım"] }
 ];
 
 let gwState = { currentPlayer: null, hintIndex: 0, score: 0, questionNum: 1, usedPlayers: [] };
