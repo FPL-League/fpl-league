@@ -3042,12 +3042,14 @@ function renderStatsPage() {
         }).join("");
     };
 
-    document.getElementById("stats-list-goals").innerHTML = generateStatHTML(state.players, 'goals');
-    document.getElementById("stats-list-assists").innerHTML = generateStatHTML(state.players, 'assists');
-    document.getElementById("stats-list-saves").innerHTML = generateStatHTML(state.players, 'saves');
-    document.getElementById("stats-list-tackles").innerHTML = generateStatHTML(state.players, 'tackles');
-    document.getElementById("stats-list-yellow").innerHTML = generateStatHTML(state.players, 'yellowCards');
-    document.getElementById("stats-list-red").innerHTML = generateStatHTML(state.players, 'redCards');
+    // Only fixture players (exclude UT cards)
+    const fixturePlayers = state.players.filter(p => !p.isUTCard);
+    document.getElementById("stats-list-goals").innerHTML = generateStatHTML(fixturePlayers, 'goals');
+    document.getElementById("stats-list-assists").innerHTML = generateStatHTML(fixturePlayers, 'assists');
+    document.getElementById("stats-list-saves").innerHTML = generateStatHTML(fixturePlayers, 'saves');
+    document.getElementById("stats-list-tackles").innerHTML = generateStatHTML(fixturePlayers, 'tackles');
+    document.getElementById("stats-list-yellow").innerHTML = generateStatHTML(fixturePlayers, 'yellowCards');
+    document.getElementById("stats-list-red").innerHTML = generateStatHTML(fixturePlayers, 'redCards');
 }
 
 // --- LIVE CHAT ---
