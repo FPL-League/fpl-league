@@ -82,6 +82,29 @@ function loadDatabase() {
     } else {
         state.draftSquad = { kaleci: null, defans: null, orta_saha_1: null, orta_saha_2: null, forvet: null };
     }
+    
+    // Offline-first: Restore full state from local cache immediately so UI doesn't block
+    const cachedState = localStorage.getItem("fpl_full_state");
+    if (cachedState) {
+        try {
+            const parsed = JSON.parse(cachedState);
+            state.users = parsed.users || [];
+            state.teams = parsed.teams || [];
+            state.players = parsed.players || [];
+            state.matches = parsed.matches || [];
+            state.marketListings = parsed.marketListings || [];
+            state.tradeOffers = parsed.tradeOffers || [];
+            state.chatMessages = parsed.chatMessages || [];
+            state.news = parsed.news || [];
+            state.posts = parsed.posts || [];
+            state.bets = parsed.bets || [];
+            state.currentWeek = parsed.currentWeek || 1;
+            state.isLoaded = true;
+            // No need to call renderAll here since window.onload calls it right after loadDatabase
+        } catch (e) {
+            console.error("Local cache invalid", e);
+        }
+    }
 
     if (db) {
         db.ref('fpl_state').on('value', (snapshot) => {
@@ -190,6 +213,26 @@ function saveDatabase() {
         localStorage.setItem("fpl_session", JSON.stringify(state.currentUser));
     } else {
         localStorage.removeItem("fpl_session");
+    }
+    
+    // Save full state copy to local storage for instant loads
+    const stateToCache = {
+        users: state.users,
+        teams: state.teams,
+        players: state.players,
+        matches: state.matches,
+        marketListings: state.marketListings,
+        tradeOffers: state.tradeOffers,
+        chatMessages: state.chatMessages,
+        news: state.news,
+        posts: state.posts,
+        bets: state.bets,
+        currentWeek: state.currentWeek
+    };
+    try {
+        localStorage.setItem("fpl_full_state", JSON.stringify(stateToCache));
+    } catch (e) {
+        console.warn("Could not save full state to local storage (quota exceeded?)", e);
     }
 
     if (db) {
