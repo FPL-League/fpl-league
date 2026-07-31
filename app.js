@@ -4461,3 +4461,44 @@ window.renderDraft = function() {
     updateUTStats();
 };
 
+
+// --- AVATAR SYNC PATCH ---
+if (window.db) {
+    db.ref("fpl_avatars").on("value", (snapshot) => {
+        const avatars = snapshot.val();
+        if (avatars && state.isLoaded) {
+            Object.keys(avatars).forEach(username => {
+                const b64 = avatars[username];
+                
+                // Update local storage so it persists offline
+                localStorage.setItem(`fpl_avatar_${username}`, b64);
+                
+                // Update users
+                const u = state.users.find(x => x.username === username);
+                if (u) u.avatar = b64;
+                
+                // Update players
+                const p = state.players.find(x => x.username === username);
+                if (p) p.avatar = b64;
+                
+                // Update currentUser if it matches
+                if (state.currentUser && state.currentUser.username === username) {
+                    state.currentUser.avatar = b64;
+                }
+            });
+            renderAll();
+        }
+    });
+}
+
+// Intercept profile avatar save to push to Firebase fpl_avatars node
+const originalSaveDatabase = saveDatabase;
+window.saveDatabase = function() {
+    originalSaveDatabase();
+    
+    // Explicitly push my avatar to the separate node so it bypasses main state payload issues
+    if (state.currentUser && state.currentUser.avatar && window.db) {
+        db.ref(`fpl_avatars/${state.currentUser.username}`).set(state.currentUser.avatar);
+    }
+};
+
