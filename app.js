@@ -1595,11 +1595,17 @@ function startBattle() {
     let opponentName = "";
     let opponentPower = 70;
     let opponentChem = 0;
+    let opponentAvatarHtml = '<i class="fa-solid fa-robot" style="margin-right:8px; color:var(--text-muted);"></i>';
 
     if (otherUsers.length > 0) {
         // Choose one of the real users
         const matchedUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
         opponentName = `${matchedUser.nickname} Kadrosu`;
+        if (matchedUser.avatar) {
+            opponentAvatarHtml = `<img src="${matchedUser.avatar}" style="width:28px;height:28px;border-radius:50%;margin-right:8px;vertical-align:middle;object-fit:cover;border:2px solid var(--accent-neon);">`;
+        } else {
+            opponentAvatarHtml = '<i class="fa-solid fa-user-circle" style="margin-right:8px; color:var(--text-muted);"></i>';
+        }
 
         // Check if the matched user has a full draft squad set up
         const oppSquadArray = matchedUser.draftSquad ? Object.values(matchedUser.draftSquad).filter(p => p !== null) : [];
@@ -1638,10 +1644,14 @@ function startBattle() {
     battleSimulator.lastOpponentName = opponentName;
     battleSimulator.awayPower = opponentPower;
 
-    document.getElementById("battle-home-squad-name").innerText = `${state.currentUser.nickname} Kadrosu`;
+    const myAvatarHtml = state.currentUser.avatar ? 
+        `<img src="${state.currentUser.avatar}" style="width:28px;height:28px;border-radius:50%;margin-right:8px;vertical-align:middle;object-fit:cover;border:2px solid var(--accent-neon);">` : 
+        '<i class="fa-solid fa-user-circle" style="margin-right:8px; color:var(--text-muted);"></i>';
+
+    document.getElementById("battle-home-squad-name").innerHTML = `${myAvatarHtml} ${state.currentUser.nickname} Kadrosu`;
     document.getElementById("battle-home-indicator").innerText = `Güç: ${myRating} | Kimya: ${myChem}%`;
 
-    document.getElementById("battle-away-squad-name").innerText = opponentName;
+    document.getElementById("battle-away-squad-name").innerHTML = `${opponentAvatarHtml} ${opponentName}`;
     document.getElementById("battle-away-indicator").innerText = `Güç: ${opponentPower} | Kimya: ${opponentChem}%`;
 
     battleSimulator.homeScore = 0;
