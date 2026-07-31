@@ -2,6 +2,35 @@
 // FPL Ultimate Market, Packs and Economy - Core Application JS
 // ==========================================================================
 
+function showGoalCardAnimation(player) {
+    const revealScreen = document.getElementById("pack-reveal-screen");
+    const innerCard = document.getElementById("revealed-card-inner");
+    if (revealScreen && innerCard) {
+        innerCard.innerHTML = `
+            <div style="text-align:center; color:white; margin-bottom:1rem; animation: pulse 1s infinite;">
+                <h2 style="color:var(--accent-gold); font-size:3rem; text-shadow:0 0 15px var(--accent-gold); margin:0;">GOOOOOL!</h2>
+                <h4 style="color:#fff; margin-top:5px;">${player.name}</h4>
+            </div>
+            ${renderPackCard(player, 'gold')}
+            <div style="text-align:center; margin-top:1rem;">
+                <button class="btn btn-primary" onclick="document.getElementById('pack-reveal-screen').classList.add('hidden')">MaÃ§a DÃ¶n</button>
+            </div>
+        `;
+        revealScreen.classList.remove("hidden");
+        
+        // Auto-hide after 3 seconds so the match continues smoothly
+        setTimeout(() => {
+            if (!revealScreen.classList.contains("hidden")) {
+                revealScreen.classList.add("hidden");
+            }
+        }, 3000);
+    }
+}
+
+// ==========================================================================
+// DRAFT KADRO (ULTIMATE TEAM) 
+// ==========================================================================
+
 // --- SEED ADMIN CREATION ---
 const DEFAULT_ADMIN = {
     username: "admin",
@@ -1888,6 +1917,9 @@ function runSimulation() {
                             âš½ ${battleSimulator.currentMinute}'. Dakika: SÄ°ZÄ°N GOLÃœNÃœZ! Kadronuz harika paslaÅŸtÄ± ve ${scorerName} bitirdi!
                         </p>
                     `;
+                    if (mySquad.forvet) {
+                        showGoalCardAnimation(mySquad.forvet);
+                    }
                     updateMatchEngine(true, true, true);
                 } else {
                     narrationBox.innerHTML += `
@@ -4304,3 +4336,128 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }, 1000);
 });
+
+// --- ONLINE MATCHMAKING ---
+let isMatchmaking = false;
+let matchmakingInterval = null;
+
+window.toggleOnlineMatchmaking = function() {
+    if (!state.currentUser) {
+        alert("Rakip aramak için giriþ yapmalýsýnýz.");
+        return;
+    }
+    const btn = document.getElementById("search-online-match-btn");
+    const status = document.getElementById("matchmaking-status");
+    
+    isMatchmaking = !isMatchmaking;
+    if (isMatchmaking) {
+        btn.innerHTML = `<i class="fa-solid fa-xmark"></i> Aramayý Ýptal Et`;
+        btn.classList.replace("btn-primary", "btn-danger");
+        status.style.display = "block";
+        
+        // Push user to online queue (simulated via firebase state, but here we just simulate the wait)
+        matchmakingInterval = setTimeout(() => {
+            if (isMatchmaking) {
+                // Simulate found opponent
+                const botOpponents = state.users.filter(u => u.username !== state.currentUser.username);
+                const opp = botOpponents.length > 0 ? botOpponents[Math.floor(Math.random() * botOpponents.length)] : {nickname: "Gizemli Rakip", avatar: ""};
+                showMatchFound(opp);
+            }
+        }, 3000 + Math.random() * 5000); // 3-8 seconds
+    } else {
+        btn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Rakip Ara`;
+        btn.classList.replace("btn-danger", "btn-primary");
+        status.style.display = "none";
+        clearTimeout(matchmakingInterval);
+    }
+};
+
+function showMatchFound(opponent) {
+    clearTimeout(matchmakingInterval);
+    const btn = document.getElementById("search-online-match-btn");
+    const status = document.getElementById("matchmaking-status");
+    if(btn) {
+        btn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Rakip Ara`;
+        btn.classList.replace("btn-danger", "btn-primary");
+    }
+    if(status) status.style.display = "none";
+    isMatchmaking = false;
+    
+    window.currentOnlineOpponent = opponent;
+    
+    const screen = document.getElementById("match-found-screen");
+    const myAvatar = document.getElementById("mf-my-avatar");
+    const oppAvatar = document.getElementById("mf-opp-avatar");
+    
+    myAvatar.innerHTML = state.currentUser.avatar ? `<img src="${state.currentUser.avatar}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="fa-solid fa-user"></i>`;
+    oppAvatar.innerHTML = opponent.avatar ? `<img src="${opponent.avatar}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="fa-solid fa-user-secret"></i>`;
+    
+    document.getElementById("mf-my-name").innerText = state.currentUser.nickname;
+    document.getElementById("mf-opp-name").innerText = opponent.nickname;
+    
+    screen.classList.remove("hidden");
+}
+
+window.cancelMatchFound = function() {
+    document.getElementById("match-found-screen").classList.add("hidden");
+    window.currentOnlineOpponent = null;
+};
+
+window.acceptMatch = function() {
+    document.getElementById("mf-waiting-status").style.display = "block";
+    // Simulate opponent accepting
+    setTimeout(() => {
+        document.getElementById("match-found-screen").classList.add("hidden");
+        document.getElementById("mf-waiting-status").style.display = "none";
+        startBattleWithOpponent(window.currentOnlineOpponent);
+    }, 1500);
+};
+
+function startBattleWithOpponent(opponent) {
+    if(!opponent) return;
+    battleSimulator.lastOpponentName = `${opponent.nickname} Kadrosu`;
+    // Force the opponent into the battle arena
+    document.getElementById("start-battle-btn").click();
+}
+
+// --- UT STATS UPDATER ---
+function updateUTStats() {
+    const container = document.getElementById("ut-stats-container");
+    if (!container || !state.currentUser) return;
+    
+    let totalGoals = 0, totalAssists = 0, totalSaves = 0;
+    
+    if (state.currentUser.inventory) {
+        state.currentUser.inventory.forEach(invId => {
+            const p = state.players.find(x => x.id === invId);
+            if (p && p.isUTCard) {
+                totalGoals += p.goals || 0;
+                totalAssists += p.assists || 0;
+                totalSaves += p.saves || 0;
+            }
+        });
+    }
+    
+    container.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem; padding:0.5rem; background:rgba(0,0,0,0.5); border-radius:4px;">
+            <span style="color:var(--text-muted);">Toplam Gol</span>
+            <strong style="color:var(--accent-gold); font-size:1.1rem;">${totalGoals}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem; padding:0.5rem; background:rgba(0,0,0,0.5); border-radius:4px;">
+            <span style="color:var(--text-muted);">Toplam Asist</span>
+            <strong style="color:var(--accent-blue); font-size:1.1rem;">${totalAssists}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:0.5rem; background:rgba(0,0,0,0.5); border-radius:4px;">
+            <span style="color:var(--text-muted);">Toplam Kurtarýþ</span>
+            <strong style="color:var(--accent-neon); font-size:1.1rem;">${totalSaves}</strong>
+        </div>
+    `;
+}
+
+// Hook into rendering
+const origRenderDraft = renderDraft;
+window.renderDraft = function() {
+    if(origRenderDraft) origRenderDraft();
+    updateUTStats();
+};
+

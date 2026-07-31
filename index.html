@@ -427,7 +427,25 @@
                                     <strong id="draft-chemistry">0%</strong>
                                 </div>
                                 <button class="btn btn-secondary w-full" id="reset-draft-btn">Kadro Sıfırla</button>
-                                <button class="btn btn-primary w-full mt-2" id="start-battle-btn"><i class="fa-solid fa-gun"></i> SAVAŞ BAŞLAT (BATTLE)</button>
+                                
+                                <div style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                                    <h4 style="margin-bottom: 0.5rem; color: var(--accent-gold);"><i class="fa-solid fa-trophy"></i> UT İstatistikleri</h4>
+                                    <div id="ut-stats-container" style="font-size: 0.85rem; color: var(--text-light); background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 6px;">
+                                        <!-- UT Stats will be injected here -->
+                                        Yükleniyor...
+                                    </div>
+                                </div>
+
+                                <div style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                                    <h4 style="margin-bottom: 0.5rem; color: var(--accent-neon);"><i class="fa-solid fa-globe"></i> Online Rakip Bul</h4>
+                                    <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom: 0.5rem;">Aktif olarak rakip arayan oyuncularla eşleşin.</p>
+                                    <button class="btn btn-primary w-full" id="search-online-match-btn" onclick="toggleOnlineMatchmaking()"><i class="fa-solid fa-magnifying-glass"></i> Rakip Ara</button>
+                                    <div id="matchmaking-status" style="margin-top:0.5rem; font-size:0.8rem; color:var(--accent-neon); text-align:center; display:none;">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Eşleşme aranıyor...
+                                    </div>
+                                </div>
+                                
+                                <button class="btn w-full mt-2" id="start-battle-btn" style="background:var(--accent-red); color:white;"><i class="fa-solid fa-robot"></i> BOT İLE SAVAŞ (BATTLE)</button>
                             </div>
 
                             <div class="draft-selection-area hidden" id="draft-selection-panel">
@@ -1119,7 +1137,30 @@
             </form>
         </div>
     </div>
+    <div id="match-found-screen" class="modal hidden" style="z-index: 3000;">
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; background:rgba(0,0,0,0.9);">
+            <div style="animation: pulse 1s infinite; text-align:center;">
+                <h1 style="color:var(--accent-neon); font-size:3rem; text-shadow:0 0 20px var(--accent-neon); margin-bottom:2rem;"><i class="fa-solid fa-handshake"></i> RAKİP BULUNDU!</h1>
+                <div style="display:flex; gap:3rem; align-items:center; justify-content:center; margin-bottom: 2rem;">
+                    <div style="text-align:center;">
+                        <div id="mf-my-avatar" style="width:80px; height:80px; border-radius:50%; background:var(--surface-dark); border:3px solid var(--accent-blue); margin:0 auto; display:flex; align-items:center; justify-content:center; font-size:2rem; overflow:hidden;"></div>
+                        <h3 id="mf-my-name" style="color:var(--accent-blue); margin-top:10px;">Ben</h3>
+                    </div>
+                    <div style="font-size:2rem; font-weight:900; color:var(--accent-red);">VS</div>
+                    <div style="text-align:center;">
+                        <div id="mf-opp-avatar" style="width:80px; height:80px; border-radius:50%; background:var(--surface-dark); border:3px solid var(--accent-red); margin:0 auto; display:flex; align-items:center; justify-content:center; font-size:2rem; overflow:hidden;"></div>
+                        <h3 id="mf-opp-name" style="color:var(--accent-red); margin-top:10px;">Rakip</h3>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="acceptMatch()" style="padding:1rem 3rem; font-size:1.2rem; margin-right:1rem;"><i class="fa-solid fa-check"></i> Kabul Et</button>
+                <button class="btn btn-danger" onclick="cancelMatchFound()" style="padding:1rem 3rem; font-size:1.2rem;"><i class="fa-solid fa-xmark"></i> Reddet</button>
+            </div>
+            <div id="mf-waiting-status" style="color:var(--text-muted); margin-top:1.5rem; display:none;">Rakibin kabul etmesi bekleniyor...</div>
+        </div>
+    </div>
 
+    <!-- NOTIFICATION TOAST -->
+    <div id="notification-toast" class="toast hidden"></div>
     <script src="app.js?v=5"></script>
 </body>
 </html>
