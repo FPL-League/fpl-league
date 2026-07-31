@@ -107,7 +107,7 @@ function loadDatabase() {
     }
 
     if (db) {
-        db.ref('fpl_state').once('value', (snapshot) => {
+        db.ref('fpl_state').on('value', (snapshot) => {
             const data = snapshot.val();
             state.isLoaded = true;
             if (data) {
@@ -124,6 +124,7 @@ function loadDatabase() {
                 state.currentWeek = data.currentWeek || 1;
 
                 // ONE-TIME CLEANUP: migrate base64 avatars from Firebase to localStorage
+                // (don't call saveDatabase here to avoid circular write)
                 let needsResave = false;
                 state.users.forEach(u => {
                     if (u.avatar && u.avatar.startsWith('data:')) {
@@ -139,11 +140,6 @@ function loadDatabase() {
                         needsResave = true;
                     }
                 });
-                if (needsResave) {
-                    // Re-write clean (small) data back to Firebase
-                    console.log("Migrating avatars out of Firebase...");
-                    saveDatabase();
-                }
 
                 // Sync current user reference
                 if (state.currentUser) {
@@ -151,24 +147,22 @@ function loadDatabase() {
                     if (freshUser) {
                         state.currentUser = { ...freshUser, draftSquad: state.draftSquad };
                         if (state.currentUser.username === 'admin') state.currentUser.role = 'admin';
-                        // Restore avatar from localStorage
                         const localAvatar = localStorage.getItem(`fpl_avatar_${state.currentUser.username}`);
                         if (localAvatar) state.currentUser.avatar = localAvatar;
                     } else {
-                        // User was deleted
                         state.currentUser = null;
                         localStorage.removeItem("fpl_session");
                     }
                 }
                 
-                // Restore all player avatars from localStorage
+                // Restore all player/user avatars from localStorage
                 state.players.forEach(p => {
-                    const localAvatar = localStorage.getItem(`fpl_avatar_${p.username}`);
-                    if (localAvatar) p.avatar = localAvatar;
+                    const a = localStorage.getItem(`fpl_avatar_${p.username}`);
+                    if (a) p.avatar = a;
                 });
                 state.users.forEach(u => {
-                    const localAvatar = localStorage.getItem(`fpl_avatar_${u.username}`);
-                    if (localAvatar) u.avatar = localAvatar;
+                    const a = localStorage.getItem(`fpl_avatar_${u.username}`);
+                    if (a) u.avatar = a;
                 });
                 
                 // Migrate: ensure all players have value fields
@@ -179,46 +173,62 @@ function loadDatabase() {
                     }
                     if (!p.valueHistory) p.valueHistory = [{ week: 1, value: p.value || 100 }];
                 });
+
+                // If avatars were in Firebase, clean them out now (safe after state is fully set)
+                if (needsResave) {
+                    const stripAv = (arr) => (arr||[]).map(item => { const c={...item}; delete c.avatar; return c; });
+                    db.ref('fpl_state').set({
+                        users: stripAv(state.users),
+                        teams: state.teams,
+                        players: stripAv(state.players),
+                        matches: state.matches,
+                        marketListings: state.marketListings,
+                        tradeOffers: state.tradeOffers,
+                        chatMessages: state.chatMessages,
+                        news: state.news || [],
+                        posts: state.posts || [],
+                        bets: state.bets || [],
+                        currentWeek: state.currentWeek
+                    });
+                }
+
             } else {
-                // Initialize default seeds on Firebase if empty
-                state.users = [
-                    DEFAULT_ADMIN,
-                    { username: "ahmet10", nickname: "Ahmet Kaya", password: "123", role: "player", coins: 250, inventory: ["p_ahmet10"] },
-                    { username: "mehmet8", nickname: "Mehmet Demir", password: "123", role: "player", coins: 250, inventory: ["p_mehmet8"] },
-                    { username: "can7", nickname: "Can Yıldız", password: "123", role: "player", coins: 250, inventory: ["p_can7"] },
-                    { username: "berk1", nickname: "Berk Şahin", password: "123", role: "player", coins: 250, inventory: ["p_berk1"] },
-                    { username: "oguz9", nickname: "Oğuz Çelik", password: "123", role: "player", coins: 250, inventory: ["p_oguz9"] }
-                ];
-                state.teams = [];
-                state.players = [
-                    { id: "p_ahmet10", username: "ahmet10", name: "Ahmet Kaya", teamId: "", position: "forvet", ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 }, goals: 0, assists: 0, yellowCards: 0 },
-                    { id: "p_mehmet8", username: "mehmet8", name: "Mehmet Demir", teamId: "", position: "orta_saha", ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 }, goals: 0, assists: 0, yellowCards: 0 },
-                    { id: "p_can7", username: "can7", name: "Can Yıldız", teamId: "", position: "defans", ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 }, goals: 0, assists: 0, yellowCards: 0 },
-                    { id: "p_berk1", username: "berk1", name: "Berk Şahin", teamId: "", position: "kaleci", ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 }, goals: 0, assists: 0, yellowCards: 0 },
-                    { id: "p_oguz9", username: "oguz9", name: "Oğuz Çelik", teamId: "", position: "orta_saha", ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 }, goals: 0, assists: 0, yellowCards: 0 }
-                ];
-                state.matches = [];
-                state.marketListings = [];
-                state.tradeOffers = [];
-                state.chatMessages = [];
-                state.news = [];
-                state.posts = [];
-                state.bets = [];
-                state.currentWeek = 1;
-                
-                db.ref('fpl_state').set({
-                    users: state.users,
-                    teams: state.teams,
-                    players: state.players,
-                    matches: state.matches,
-                    marketListings: state.marketListings,
-                    tradeOffers: state.tradeOffers,
-                    chatMessages: state.chatMessages,
-                    news: state.news,
-                    posts: state.posts,
-                    bets: state.bets,
-                    currentWeek: state.currentWeek
-                });
+                // Firebase is empty - try to restore from localStorage cache first
+                const cachedState = localStorage.getItem("fpl_full_state");
+                if (cachedState) {
+                    try {
+                        const parsed = JSON.parse(cachedState);
+                        state.users = parsed.users || [];
+                        state.teams = parsed.teams || [];
+                        state.players = parsed.players || [];
+                        state.matches = parsed.matches || [];
+                        state.marketListings = parsed.marketListings || [];
+                        state.tradeOffers = parsed.tradeOffers || [];
+                        state.chatMessages = parsed.chatMessages || [];
+                        state.news = parsed.news || [];
+                        state.posts = parsed.posts || [];
+                        state.bets = parsed.bets || [];
+                        state.currentWeek = parsed.currentWeek || 1;
+                        console.log("Restored state from localStorage cache!");
+                        // Write it back to Firebase
+                        const stripAv = (arr) => (arr||[]).map(item => { const c={...item}; delete c.avatar; return c; });
+                        db.ref('fpl_state').set({
+                            users: stripAv(state.users),
+                            teams: state.teams,
+                            players: stripAv(state.players),
+                            matches: state.matches,
+                            marketListings: state.marketListings,
+                            tradeOffers: state.tradeOffers,
+                            chatMessages: state.chatMessages,
+                            news: state.news || [],
+                            posts: state.posts || [],
+                            bets: state.bets || [],
+                            currentWeek: state.currentWeek
+                        });
+                    } catch(e) {
+                        console.error("Cache restore failed", e);
+                    }
+                }
             }
             
             // Set current week failsafe
@@ -231,34 +241,7 @@ function loadDatabase() {
                 state.currentWeek = 1;
             }
 
-            // Save lean snapshot to localStorage for instant future loads
-            saveDatabase();
             renderAll();
-
-            // Now switch to real-time updates (after initial clean load)
-            db.ref('fpl_state').on('value', (snap) => {
-                const liveData = snap.val();
-                if (!liveData) return;
-                state.users = liveData.users || state.users;
-                state.teams = liveData.teams || state.teams;
-                state.players = liveData.players || state.players;
-                state.matches = liveData.matches || state.matches;
-                state.marketListings = liveData.marketListings || state.marketListings;
-                state.tradeOffers = liveData.tradeOffers || state.tradeOffers;
-                state.chatMessages = liveData.chatMessages || state.chatMessages;
-                state.news = liveData.news || state.news;
-                state.posts = liveData.posts || state.posts;
-                state.bets = liveData.bets || state.bets;
-                state.currentWeek = liveData.currentWeek || state.currentWeek;
-                // Restore avatars
-                state.players.forEach(p => { const a = localStorage.getItem(`fpl_avatar_${p.username}`); if (a) p.avatar = a; });
-                state.users.forEach(u => { const a = localStorage.getItem(`fpl_avatar_${u.username}`); if (a) u.avatar = a; });
-                if (state.currentUser) {
-                    const fu = state.users.find(u => u.username === state.currentUser.username);
-                    if (fu) { state.currentUser = { ...fu, draftSquad: state.draftSquad }; const a = localStorage.getItem(`fpl_avatar_${state.currentUser.username}`); if (a) state.currentUser.avatar = a; }
-                }
-                renderAll();
-            });
         });
     }
 }
