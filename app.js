@@ -3402,14 +3402,20 @@ function renderChat() {
     
     const myUsername = state.currentUser ? state.currentUser.username : null;
     
+    const isAdmin = state.currentUser && state.currentUser.role === 'admin';
+    
     container.innerHTML = state.chatMessages.map(m => {
         const isMe = m.sender === myUsername;
+        const canDelete = isMe || isAdmin;
         const cls = isMe ? "sent" : "received";
         const timeStr = new Date(m.time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
         
         return `
             <div class="chat-msg ${cls}">
-                <span class="chat-sender">${m.nickname}</span>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <span class="chat-sender">${m.nickname}</span>
+                    ${canDelete ? `<button onclick="deleteChatMessage('${m.id}')" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; padding:0; font-size:0.8rem;"><i class="fa-solid fa-trash"></i></button>` : ''}
+                </div>
                 <span class="chat-text">${m.text}</span>
                 <span class="chat-time">${timeStr}</span>
             </div>
@@ -3419,6 +3425,13 @@ function renderChat() {
     // Auto scroll to bottom
     container.scrollTop = container.scrollHeight;
 }
+
+window.deleteChatMessage = function(msgId) {
+    if (!confirm("Bu mesajı silmek istediğinize emin misiniz?")) return;
+    state.chatMessages = state.chatMessages.filter(m => m.id !== msgId);
+    saveDatabase();
+    renderChat();
+};
 
 // ==========================================================================
 // V4.0 MEGA UPDATE - NEW FEATURES
@@ -3534,8 +3547,21 @@ function renderSocial() {
     const sorted = [...state.posts].sort((a, b) => b.time - a.time);
     const isAdmin = state.currentUser && state.currentUser.role === 'admin';
     
-    container.innerHTML = sorted.map(p => `
-        <div style="background:var(--surface-dark);border-radius:12px;padding:1rem;border:1px solid var(--border-color);">
+    container.innerHTML = sorted.map(p => {
+        const likes = p.likes || [];
+        const dislikes = p.dislikes || [];
+        const comments = p.comments || [];
+        const isLiked = state.currentUser && likes.includes(state.currentUser.username);
+        const isDisliked = state.currentUser && dislikes.includes(state.currentUser.username);
+        
+        const commentsHtml = comments.map(c => `
+            <div style="background:rgba(0,0,0,0.2); padding:0.5rem; border-radius:8px; margin-top:0.5rem; font-size:0.85rem;">
+                <strong style="color:var(--accent-blue);">${c.nickname}</strong>: <span style="color:var(--text-light);">${c.text}</span>
+            </div>
+        `).join("");
+        
+        return `
+        <div style="background:var(--surface-dark);border-radius:12px;padding:1rem;border:1px solid var(--border-color);margin-bottom:1rem;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
                 <div>
                     <strong style="color:var(--accent-blue);">${p.nickname}</strong>
@@ -3548,10 +3574,20 @@ function renderSocial() {
             </div>
             <p style="margin:0;color:rgba(255,255,255,0.9);line-height:1.5;">${p.text}</p>
             <div style="margin-top:0.5rem;display:flex;gap:1rem;">
-                <button class="btn btn-secondary btn-sm" onclick="likePost('${p.id}')" style="padding:2px 8px;font-size:0.8rem;background:transparent;border:1px solid var(--border-color);"><i class="fa-solid fa-heart" style="color:${p.likes && state.currentUser && p.likes.includes(state.currentUser.username) ? '#ff4d6d' : 'var(--text-muted)'}"></i> ${(p.likes || []).length}</button>
+                <button class="btn btn-secondary btn-sm" onclick="likePost('${p.id}')" style="padding:2px 8px;font-size:0.8rem;background:transparent;border:1px solid var(--border-color);"><i class="fa-solid fa-heart" style="color:${isLiked ? '#ff4d6d' : 'var(--text-muted)'}"></i> ${likes.length}</button>
+                <button class="btn btn-secondary btn-sm" onclick="dislikePost('${p.id}')" style="padding:2px 8px;font-size:0.8rem;background:transparent;border:1px solid var(--border-color);"><i class="fa-solid fa-thumbs-down" style="color:${isDisliked ? '#ff9f1c' : 'var(--text-muted)'}"></i> ${dislikes.length}</button>
+            </div>
+            
+            <div style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.5rem;">
+                ${commentsHtml}
+                <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+                    <input type="text" id="comment-input-${p.id}" placeholder="Yorum yaz..." style="flex:1; padding:0.4rem; border-radius:6px; border:1px solid var(--border-color); background:rgba(0,0,0,0.3); color:white; font-size:0.85rem;" onkeypress="if(event.key==='Enter') addComment('${p.id}')">
+                    <button class="btn btn-primary btn-sm" onclick="addComment('${p.id}')" style="padding:0.4rem 0.8rem; font-size:0.85rem;">Gönder</button>
+                </div>
             </div>
         </div>
-    `).join("");
+        `;
+    }).join("");
 }
 
 function initSocialHandlers() {
@@ -3569,7 +3605,9 @@ function initSocialHandlers() {
             nickname: state.currentUser.nickname,
             text: text,
             time: Date.now(),
-            likes: []
+            likes: [],
+            dislikes: [],
+            comments: []
         });
         saveDatabase();
         input.value = "";
@@ -3589,13 +3627,60 @@ window.likePost = function(postId) {
     const post = state.posts.find(p => p.id === postId);
     if (!post) return;
     if (!post.likes) post.likes = [];
+    if (!post.dislikes) post.dislikes = [];
     
     const idx = post.likes.indexOf(state.currentUser.username);
     if (idx === -1) {
         post.likes.push(state.currentUser.username);
+        // Remove from dislikes if liked
+        const dIdx = post.dislikes.indexOf(state.currentUser.username);
+        if (dIdx !== -1) post.dislikes.splice(dIdx, 1);
     } else {
         post.likes.splice(idx, 1);
     }
+    saveDatabase();
+    renderSocial();
+};
+
+window.dislikePost = function(postId) {
+    if (!state.currentUser) { alert("Beğenmemek için giriş yapmalısınız!"); return; }
+    const post = state.posts.find(p => p.id === postId);
+    if (!post) return;
+    if (!post.likes) post.likes = [];
+    if (!post.dislikes) post.dislikes = [];
+    
+    const idx = post.dislikes.indexOf(state.currentUser.username);
+    if (idx === -1) {
+        post.dislikes.push(state.currentUser.username);
+        // Remove from likes if disliked
+        const lIdx = post.likes.indexOf(state.currentUser.username);
+        if (lIdx !== -1) post.likes.splice(lIdx, 1);
+    } else {
+        post.dislikes.splice(idx, 1);
+    }
+    saveDatabase();
+    renderSocial();
+};
+
+window.addComment = function(postId) {
+    if (!state.currentUser) { alert("Yorum yapmak için giriş yapmalısınız!"); return; }
+    const input = document.getElementById(`comment-input-${postId}`);
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+    
+    const post = state.posts.find(p => p.id === postId);
+    if (!post) return;
+    if (!post.comments) post.comments = [];
+    
+    post.comments.push({
+        id: "comment_" + Date.now(),
+        sender: state.currentUser.username,
+        nickname: state.currentUser.nickname,
+        text: text,
+        time: Date.now()
+    });
+    
     saveDatabase();
     renderSocial();
 };
