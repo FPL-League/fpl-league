@@ -110,7 +110,7 @@ function loadDatabase() {
         db.ref('fpl_state').on('value', (snapshot) => {
             const data = snapshot.val();
             state.isLoaded = true;
-            if (data) {
+            if (data && data.users && data.users.length > 0) {
                 state.users = data.users || [];
                 state.teams = data.teams || [];
                 state.players = data.players || [];
@@ -125,19 +125,16 @@ function loadDatabase() {
 
                 // ONE-TIME CLEANUP: migrate base64 avatars from Firebase to localStorage
                 // (don't call saveDatabase here to avoid circular write)
-                let needsResave = false;
                 state.users.forEach(u => {
                     if (u.avatar && u.avatar.startsWith('data:')) {
                         localStorage.setItem(`fpl_avatar_${u.username}`, u.avatar);
-                        delete u.avatar;
-                        needsResave = true;
+                        // Keep avatar in state for sync; do not delete
                     }
                 });
                 state.players.forEach(p => {
                     if (p.avatar && p.avatar.startsWith('data:')) {
                         localStorage.setItem(`fpl_avatar_${p.username}`, p.avatar);
-                        delete p.avatar;
-                        needsResave = true;
+                        // Keep avatar in state for sync; do not delete
                     }
                 });
 
@@ -155,14 +152,18 @@ function loadDatabase() {
                     }
                 }
                 
-                // Restore all player/user avatars from localStorage
+                // Restore avatars: use Firebase avatar if present, otherwise fallback to localStorage
                 state.players.forEach(p => {
-                    const a = localStorage.getItem(`fpl_avatar_${p.username}`);
-                    if (a) p.avatar = a;
+                    if (!p.avatar) {
+                        const a = localStorage.getItem(`fpl_avatar_${p.username}`);
+                        if (a) p.avatar = a;
+                    }
                 });
                 state.users.forEach(u => {
-                    const a = localStorage.getItem(`fpl_avatar_${u.username}`);
-                    if (a) u.avatar = a;
+                    if (!u.avatar) {
+                        const a = localStorage.getItem(`fpl_avatar_${u.username}`);
+                        if (a) u.avatar = a;
+                    }
                 });
                 
                 // Migrate: ensure all players have value fields
@@ -174,22 +175,23 @@ function loadDatabase() {
                     if (!p.valueHistory) p.valueHistory = [{ week: 1, value: p.value || 100 }];
                 });
 
-                // If avatars were in Firebase, clean them out now (safe after state is fully set)
-                if (needsResave) {
-                    const stripAv = (arr) => (arr||[]).map(item => { const c={...item}; delete c.avatar; return c; });
-                    db.ref('fpl_state').set({
-                        users: stripAv(state.users),
-                        teams: state.teams,
-                        players: stripAv(state.players),
-                        matches: state.matches,
-                        marketListings: state.marketListings,
-                        tradeOffers: state.tradeOffers,
-                        chatMessages: state.chatMessages,
-                        news: state.news || [],
-                        posts: state.posts || [],
-                        bets: state.bets || [],
-                        currentWeek: state.currentWeek
-                    });
+                // Auto-migration: if we found avatars in localStorage that Firebase
+                // didn't have, push them to Firebase ONCE so other devices can see them.
+                let avatarsMigrated = false;
+                state.users.forEach(u => {
+                    if (u.avatar && !(data.users.find(du => du.username === u.username) || {}).avatar) {
+                        avatarsMigrated = true;
+                    }
+                });
+                state.players.forEach(p => {
+                    if (p.avatar && !(data.players.find(dp => dp.id === p.id) || {}).avatar) {
+                        avatarsMigrated = true;
+                    }
+                });
+                if (avatarsMigrated) {
+                    console.log("Avatarlar localStorage'dan Firebase'e taşınıyor...");
+                    db.ref('fpl_state/users').set(state.users);
+                    db.ref('fpl_state/players').set(state.players);
                 }
 
             } else {
@@ -210,12 +212,24 @@ function loadDatabase() {
                         state.bets = parsed.bets || [];
                         state.currentWeek = parsed.currentWeek || 1;
                         console.log("Restored state from localStorage cache!");
-                        // Write it back to Firebase
-                        const stripAv = (arr) => (arr||[]).map(item => { const c={...item}; delete c.avatar; return c; });
+                        // Restore avatars from localStorage before writing to Firebase
+                        state.users.forEach(u => {
+                            if (!u.avatar) {
+                                const a = localStorage.getItem(`fpl_avatar_${u.username}`);
+                                if (a) u.avatar = a;
+                            }
+                        });
+                        state.players.forEach(p => {
+                            if (!p.avatar) {
+                                const a = localStorage.getItem(`fpl_avatar_${p.username}`);
+                                if (a) p.avatar = a;
+                            }
+                        });
+                        // Write full state WITH avatars back to Firebase
                         db.ref('fpl_state').set({
-                            users: stripAv(state.users),
+                            users: state.users,
                             teams: state.teams,
-                            players: stripAv(state.players),
+                            players: state.players,
                             matches: state.matches,
                             marketListings: state.marketListings,
                             tradeOffers: state.tradeOffers,
@@ -289,10 +303,11 @@ function saveDatabase() {
             return copy;
         });
         
+        // Write full state including avatars to Firebase for cross-device sync
         db.ref('fpl_state').set({
-            users: stripAvatars(state.users),
+            users: state.users,
             teams: state.teams,
-            players: stripAvatars(state.players),
+            players: state.players,
             matches: state.matches,
             marketListings: state.marketListings,
             tradeOffers: state.tradeOffers,
