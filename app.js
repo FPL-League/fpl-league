@@ -296,11 +296,18 @@ function saveDatabase() {
     }
 
     if (db) {
-        // Strip avatar data before sending to Firebase (avatars stored locally only)
-        const stripAvatars = (arr) => (arr || []).map(item => {
-            const copy = { ...item };
-            delete copy.avatar;
-            return copy;
+        // Before writing to Firebase, ensure avatars from localStorage are in state
+        state.users.forEach(u => {
+            if (!u.avatar) {
+                const a = localStorage.getItem(`fpl_avatar_${u.username}`);
+                if (a) u.avatar = a;
+            }
+        });
+        state.players.forEach(p => {
+            if (!p.avatar && p.username) {
+                const a = localStorage.getItem(`fpl_avatar_${p.username}`);
+                if (a) p.avatar = a;
+            }
         });
         
         // Write full state including avatars to Firebase for cross-device sync
