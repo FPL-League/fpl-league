@@ -348,18 +348,27 @@ function initAuthHandlers() {
         }
     };
 
-    formRegister.onsubmit = (e) => {
+    formRegister.onsubmit = async (e) => {
         e.preventDefault();
         const uid = document.getElementById("register-username").value.trim().toLowerCase();
         const nickname = document.getElementById("register-nickname").value.trim();
         const position = document.getElementById("register-position").value;
         const pass = document.getElementById("register-password").value;
-        const avatarUrl = document.getElementById("register-avatar").value.trim();
+        const fileInput = document.getElementById("register-avatar");
         const selectedTeamId = document.getElementById("register-team") ? document.getElementById("register-team").value : "";
 
         if (state.users.some(u => u.username === uid)) {
             alert("Bu Oyun İçi ID zaten kayıtlı!");
             return;
+        }
+        
+        const submitBtn = formRegister.querySelector('button[type="submit"]');
+        submitBtn.innerText = "Hesap Oluşturuluyor...";
+        submitBtn.disabled = true;
+        
+        let avatarUrl = "";
+        if (fileInput.files && fileInput.files[0]) {
+            avatarUrl = await processImageUpload(fileInput.files[0]);
         }
 
         // New players start at 70 OVR (main card)
@@ -441,6 +450,8 @@ function initAuthHandlers() {
         
         saveDatabase();
         formRegister.reset();
+        submitBtn.innerText = "Kayıt Ol ve Kartını Oluştur";
+        submitBtn.disabled = false;
         
         alert("Kayıt başarılı! 5 adet başlangıç oyuncusu ve 250 FPL Coin hesabınıza eklendi. Hesabınız yeni açıldığı için ilk 24 saat boyunca Ultimate Team modları (Draft & Market) kilitli kalacaktır.");
         renderAll();
@@ -1089,10 +1100,49 @@ window.closePlayerProfileModal = function() {
     document.getElementById('player-profile-modal').classList.add('hidden');
 };
 
+// --- IMAGE UPLOAD HELPER ---
+function processImageUpload(file) {
+    return new Promise((resolve, reject) => {
+        if (!file) return resolve("");
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                const maxSize = 250;
+                let width = img.width;
+                let height = img.height;
+                
+                if (width > height) {
+                    if (width > maxSize) {
+                        height *= maxSize / width;
+                        width = maxSize;
+                    }
+                } else {
+                    if (height > maxSize) {
+                        width *= maxSize / height;
+                        height = maxSize;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL("image/jpeg", 0.7)); // compress to 70% quality jpeg
+            };
+            img.onerror = () => resolve("");
+            img.src = e.target.result;
+        };
+        reader.onerror = () => resolve("");
+        reader.readAsDataURL(file);
+    });
+}
+
 // --- PROFILE EDIT MODAL ---
 window.openProfileEditModal = function() {
     if (!state.currentUser) return;
-    document.getElementById("edit-avatar").value = state.currentUser.avatar || "";
+    document.getElementById("edit-avatar").value = ""; // Reset file input
     document.getElementById("profile-edit-modal").classList.remove("hidden");
 };
 
@@ -1103,10 +1153,23 @@ window.closeProfileEditModal = function() {
 document.addEventListener("DOMContentLoaded", () => {
     const editForm = document.getElementById("profile-edit-form");
     if (editForm) {
-        editForm.onsubmit = (e) => {
+        editForm.onsubmit = async (e) => {
             e.preventDefault();
             if (!state.currentUser) return;
-            const newAvatar = document.getElementById("edit-avatar").value.trim();
+            
+            const fileInput = document.getElementById("edit-avatar");
+            let newAvatar = state.currentUser.avatar; // Keep old if not changed
+            if (fileInput.files && fileInput.files[0]) {
+                const submitBtn = editForm.querySelector('button[type="submit"]');
+                submitBtn.innerText = "Yükleniyor...";
+                submitBtn.disabled = true;
+                
+                newAvatar = await processImageUpload(fileInput.files[0]);
+                
+                submitBtn.innerText = "Kaydet";
+                submitBtn.disabled = false;
+            }
+            
             state.currentUser.avatar = newAvatar;
             
             // Also update the main player card if exists

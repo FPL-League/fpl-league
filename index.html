@@ -177,8 +177,8 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label for="register-avatar">Profil Fotoğrafı URL (İsteğe Bağlı)</label>
-                                    <input type="url" id="register-avatar" placeholder="https://ornek.com/foto.jpg">
+                                    <label for="register-avatar">Profil Fotoğrafı Seç (İsteğe Bağlı)</label>
+                                    <input type="file" id="register-avatar" accept="image/*">
                                 </div>
                                 <div class="form-group">
                                     <label for="register-password">Şifre</label>
@@ -1108,9 +1108,9 @@
             
             <form id="profile-edit-form">
                 <div class="form-group">
-                    <label for="edit-avatar">Profil Fotoğrafı URL</label>
-                    <input type="url" id="edit-avatar" placeholder="https://ornek.com/foto.jpg">
-                    <small class="text-muted">Avatarınızı değiştirmek için fotoğraf linki yapıştırın.</small>
+                    <label for="edit-avatar">Profil Fotoğrafı Seç</label>
+                    <input type="file" id="edit-avatar" accept="image/*">
+                    <small class="text-muted">Avatarınızı değiştirmek için cihazınızdan bir fotoğraf seçin.</small>
                 </div>
                 <button type="submit" class="btn btn-accent w-full mt-4">Kaydet</button>
             </form>
