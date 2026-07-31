@@ -129,12 +129,25 @@ function loadDatabase() {
                     if (freshUser) {
                         state.currentUser = { ...freshUser, draftSquad: state.draftSquad };
                         if (state.currentUser.username === 'admin') state.currentUser.role = 'admin';
+                        // Restore avatar from localStorage
+                        const localAvatar = localStorage.getItem(`fpl_avatar_${state.currentUser.username}`);
+                        if (localAvatar) state.currentUser.avatar = localAvatar;
                     } else {
                         // User was deleted
                         state.currentUser = null;
                         localStorage.removeItem("fpl_session");
                     }
                 }
+                
+                // Restore all player avatars from localStorage
+                state.players.forEach(p => {
+                    const localAvatar = localStorage.getItem(`fpl_avatar_${p.username}`);
+                    if (localAvatar) p.avatar = localAvatar;
+                });
+                state.users.forEach(u => {
+                    const localAvatar = localStorage.getItem(`fpl_avatar_${u.username}`);
+                    if (localAvatar) u.avatar = localAvatar;
+                });
                 
                 // Migrate: ensure all players have value fields
                 state.players.forEach(p => {
@@ -215,11 +228,12 @@ function saveDatabase() {
         localStorage.removeItem("fpl_session");
     }
     
-    // Save full state copy to local storage for instant loads
+    // Save full state copy to local storage for instant loads (strip avatars, stored separately)
+    const stripAv = (arr) => (arr || []).map(item => { const c = {...item}; delete c.avatar; return c; });
     const stateToCache = {
-        users: state.users,
+        users: stripAv(state.users),
         teams: state.teams,
-        players: state.players,
+        players: stripAv(state.players),
         matches: state.matches,
         marketListings: state.marketListings,
         tradeOffers: state.tradeOffers,
@@ -236,10 +250,17 @@ function saveDatabase() {
     }
 
     if (db) {
+        // Strip avatar data before sending to Firebase (avatars stored locally only)
+        const stripAvatars = (arr) => (arr || []).map(item => {
+            const copy = { ...item };
+            delete copy.avatar;
+            return copy;
+        });
+        
         db.ref('fpl_state').set({
-            users: state.users,
+            users: stripAvatars(state.users),
             teams: state.teams,
-            players: state.players,
+            players: stripAvatars(state.players),
             matches: state.matches,
             marketListings: state.marketListings,
             tradeOffers: state.tradeOffers,
@@ -492,6 +513,14 @@ function initAuthHandlers() {
 
         state.users.push(newUser);
         state.currentUser = newUser;
+        
+        // Save avatar to dedicated localStorage key to keep Firebase payload small
+        if (avatarUrl) {
+            localStorage.setItem(`fpl_avatar_${uid}`, avatarUrl);
+        }
+        
+        // Strip avatars from state objects before saving to Firebase
+        state.currentUser.avatar = avatarUrl; // keep in memory for current session
         
         saveDatabase();
         formRegister.reset();
@@ -1239,6 +1268,13 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             
             state.currentUser.avatar = newAvatar;
+            
+            // Save avatar to its own localStorage key (keeps Firebase payload small)
+            if (newAvatar) {
+                localStorage.setItem(`fpl_avatar_${state.currentUser.username}`, newAvatar);
+            } else {
+                localStorage.removeItem(`fpl_avatar_${state.currentUser.username}`);
+            }
             
             // Also update the main player card if exists
             const myPlayer = state.players.find(p => p.username === state.currentUser.username && !p.id.includes("_starter_") && !p.id.includes("_pack_"));
