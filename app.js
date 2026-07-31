@@ -1284,6 +1284,31 @@ window.closePlayerProfileModal = function() {
 function processImageUpload(file) {
     return new Promise((resolve, reject) => {
         if (!file) return resolve("");
+        
+        // Dosya boyutu kontrolu (max 2 MB)
+        const MAX_SIZE = 2 * 1024 * 1024;
+        if (file.size > MAX_SIZE) {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+            alert('Profil fotografi yuklenemedi!\n\nSebep: Dosya cok buyuk (' + sizeMB + ' MB).\nMaksimum dosya boyutu: 2 MB.\n\nDaha kucuk bir fotograf secin.');
+            return resolve("");
+        }
+        
+        // Dosya turu kontrolu
+        const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        if (!ALLOWED_TYPES.includes(file.type)) {
+            alert('Profil fotografi yuklenemedi!\n\nSebep: Desteklenmeyen dosya turu: ' + (file.type || 'bilinmiyor') + '\nIzin verilen turler: JPG, PNG, WebP, GIF.\n\nLutfen gecerli bir resim dosyasi secin.');
+            return resolve("");
+        }
+        
+        // Dosya uzantisi kontrolu
+        const fileName = file.name || '';
+        const ext = fileName.split('.').pop().toLowerCase();
+        const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        if (fileName && !ALLOWED_EXTS.includes(ext)) {
+            alert('Profil fotografi yuklenemedi!\n\nSebep: Gecersiz dosya uzantisi: .' + ext + '\nIzin verilen uzantilar: .jpg, .png, .webp, .gif\n\nLutfen gecerli bir resim dosyasi secin.');
+            return resolve("");
+        }
+        
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = new Image();
@@ -1309,12 +1334,18 @@ function processImageUpload(file) {
                 canvas.height = height;
                 const ctx = canvas.getContext("2d");
                 ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL("image/jpeg", 0.7)); // compress to 70% quality jpeg
+                resolve(canvas.toDataURL("image/jpeg", 0.7));
             };
-            img.onerror = () => resolve("");
+            img.onerror = () => {
+                alert('Profil fotografi yuklenemedi!\n\nSebep: Dosya bozuk veya gecerli bir gorsel degil.\nDosya adi: ' + fileName + '\n\nLutfen farkli bir fotograf deneyin.');
+                resolve("");
+            };
             img.src = e.target.result;
         };
-        reader.onerror = () => resolve("");
+        reader.onerror = () => {
+            alert('Profil fotografi yuklenemedi!\n\nSebep: Dosya okunamadi - dosya hasarli olabilir.\n\nLutfen farkli bir dosya secin.');
+            resolve("");
+        };
         reader.readAsDataURL(file);
     });
 }
@@ -4343,7 +4374,7 @@ let matchmakingInterval = null;
 
 window.toggleOnlineMatchmaking = function() {
     if (!state.currentUser) {
-        alert("Rakip aramak için giriþ yapmalýsýnýz.");
+        alert("Rakip aramak iï¿½in giriï¿½ yapmalï¿½sï¿½nï¿½z.");
         return;
     }
     const btn = document.getElementById("search-online-match-btn");
@@ -4351,7 +4382,7 @@ window.toggleOnlineMatchmaking = function() {
     
     isMatchmaking = !isMatchmaking;
     if (isMatchmaking) {
-        btn.innerHTML = `<i class="fa-solid fa-xmark"></i> Aramayý Ýptal Et`;
+        btn.innerHTML = `<i class="fa-solid fa-xmark"></i> Aramayï¿½ ï¿½ptal Et`;
         btn.classList.replace("btn-primary", "btn-danger");
         status.style.display = "block";
         
@@ -4448,7 +4479,7 @@ function updateUTStats() {
             <strong style="color:var(--accent-blue); font-size:1.1rem;">${totalAssists}</strong>
         </div>
         <div style="display:flex; justify-content:space-between; padding:0.5rem; background:rgba(0,0,0,0.5); border-radius:4px;">
-            <span style="color:var(--text-muted);">Toplam Kurtarýþ</span>
+            <span style="color:var(--text-muted);">Toplam Kurtarï¿½ï¿½</span>
             <strong style="color:var(--accent-neon); font-size:1.1rem;">${totalSaves}</strong>
         </div>
     `;
