@@ -44,6 +44,7 @@ let state = {
     bets: [],
     currentUser: null,
     currentWeek: 1,
+    isLoaded: false,
     selectedDraftSlot: null,
     draftSquad: {
         kaleci: null,
@@ -85,6 +86,7 @@ function loadDatabase() {
     if (db) {
         db.ref('fpl_state').on('value', (snapshot) => {
             const data = snapshot.val();
+            state.isLoaded = true;
             if (data) {
                 state.users = data.users || [];
                 state.teams = data.teams || [];
@@ -560,9 +562,17 @@ function renderWidgets() {
 }
 
 function renderDashboard() {
+    const dashboardMatchesContainer = document.getElementById("dashboard-matches");
+    const miniStandingsBody = document.getElementById("dashboard-standings-body");
+    
+    if (!state.isLoaded) {
+        dashboardMatchesContainer.innerHTML = `<p class="text-muted text-center" style="grid-column: span 3; padding: 1.5rem 0;"><i class="fa-solid fa-spinner fa-spin"></i> Sunucudan veriler yükleniyor...</p>`;
+        miniStandingsBody.innerHTML = `<tr><td colspan="5" class="text-muted text-center"><i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor...</td></tr>`;
+        return;
+    }
+
     // Latest matches list
     const latestMatches = [...state.matches].filter(m => m.played).slice(-3).reverse();
-    const dashboardMatchesContainer = document.getElementById("dashboard-matches");
     
     if (latestMatches.length === 0) {
         dashboardMatchesContainer.innerHTML = `<p class="text-muted text-center" style="grid-column: span 3; padding: 1.5rem 0;">Henüz oynanmış lig maçı bulunmuyor.</p>`;
@@ -772,8 +782,14 @@ function calculateStandings() {
 }
 
 function renderStandings() {
-    const standings = calculateStandings();
     const standingsBody = document.getElementById("standings-body");
+    
+    if (!state.isLoaded) {
+        standingsBody.innerHTML = `<tr><td colspan="12" class="text-muted text-center"><i class="fa-solid fa-spinner fa-spin"></i> Sunucudan puan durumu yükleniyor...</td></tr>`;
+        return;
+    }
+
+    const standings = calculateStandings();
     
     if (standings.length === 0) {
         standingsBody.innerHTML = `<tr><td colspan="12" class="text-muted text-center">Takım oluşturulmadı. Lütfen Yönetici Paneli'nden takım ekleyin.</td></tr>`;
@@ -812,9 +828,14 @@ function renderStandings() {
 
 function renderFixtures() {
     document.getElementById("current-week-display").innerText = `${state.currentWeek}. Hafta`;
+    const container = document.getElementById("fixtures-container");
+    
+    if (!state.isLoaded) {
+        container.innerHTML = `<p class="text-muted text-center" style="grid-column: span 2;"><i class="fa-solid fa-spinner fa-spin"></i> Fikstür yükleniyor...</p>`;
+        return;
+    }
     
     const weekMatches = state.matches.filter(m => m.week === state.currentWeek);
-    const container = document.getElementById("fixtures-container");
     
     if (weekMatches.length === 0) {
         container.innerHTML = `<p class="text-muted text-center" style="grid-column: span 2;">Bu hafta için eklenmiş maç bulunmuyor.</p>`;
@@ -850,6 +871,11 @@ function renderFixtures() {
 
 function renderPlayers(filter = "all", searchQuery = "") {
     const container = document.getElementById("players-cards-container");
+    
+    if (!state.isLoaded) {
+        container.innerHTML = `<p class="text-muted" style="grid-column: span 4; text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Oyuncu veritabanı yükleniyor...</p>`;
+        return;
+    }
     
     // Only display players who are associated with registered users, excluding UT cards, starter cards, and seeded AI mock users
     const mockUsernames = ['ahmet10', 'mehmet8', 'can7', 'berk1', 'oguz9'];
