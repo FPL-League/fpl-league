@@ -354,6 +354,7 @@ function initAuthHandlers() {
         const nickname = document.getElementById("register-nickname").value.trim();
         const position = document.getElementById("register-position").value;
         const pass = document.getElementById("register-password").value;
+        const avatarUrl = document.getElementById("register-avatar").value.trim();
         const selectedTeamId = document.getElementById("register-team") ? document.getElementById("register-team").value : "";
 
         if (state.users.some(u => u.username === uid)) {
@@ -368,6 +369,7 @@ function initAuthHandlers() {
             name: nickname,
             teamId: selectedTeamId,
             position: position,
+            avatar: avatarUrl,
             ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 },
             goals: 0,
             assists: 0,
@@ -427,6 +429,7 @@ function initAuthHandlers() {
             username: uid,
             nickname: nickname,
             password: pass,
+            avatar: avatarUrl,
             role: "player",
             coins: 250, // Starts with 250 Coins
             inventory: starterIds,
@@ -496,14 +499,16 @@ function renderAuthStatusBar() {
     const bar = document.getElementById("auth-status-bar");
     if (state.currentUser) {
         const coinText = state.currentUser.username === 'admin' ? "Sonsuz" : state.currentUser.coins;
+        const avatarImg = state.currentUser.avatar ? `<img src="${state.currentUser.avatar}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border: 2px solid var(--accent-neon);">` : `<i class="fa-solid fa-user-circle"></i>`;
+        
         bar.innerHTML = `
-            <div class="auth-user-card">
-                <i class="fa-solid fa-user-circle"></i>
+            <div class="auth-user-card" style="cursor: pointer;" onclick="openProfileEditModal()" title="Profili Düzenle">
+                ${avatarImg}
                 <div>
                     <span class="auth-username">${state.currentUser.nickname} (💰 ${coinText})</span>
                     <span class="auth-role-badge">${state.currentUser.role}</span>
                 </div>
-                <button class="btn btn-secondary btn-sm" onclick="logout()">Çıkış Yap</button>
+                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); logout()">Çıkış Yap</button>
             </div>
         `;
     } else {
@@ -880,7 +885,7 @@ function createFutCardHTML(player, ovr, cardClass) {
                 </div>
             </div>
             <div class="card-avatar">
-                <i class="fa-solid fa-user-ninja"></i>
+                ${player.avatar ? `<img src="${player.avatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : `<i class="fa-solid fa-user-ninja"></i>`}
             </div>
             <div class="card-name" title="${player.name}">${player.name}</div>
             <div class="card-team-name">${getTeamName(player.teamId)}</div>
@@ -1083,6 +1088,39 @@ window.openPlayerProfileModal = function(playerId) {
 window.closePlayerProfileModal = function() {
     document.getElementById('player-profile-modal').classList.add('hidden');
 };
+
+// --- PROFILE EDIT MODAL ---
+window.openProfileEditModal = function() {
+    if (!state.currentUser) return;
+    document.getElementById("edit-avatar").value = state.currentUser.avatar || "";
+    document.getElementById("profile-edit-modal").classList.remove("hidden");
+};
+
+window.closeProfileEditModal = function() {
+    document.getElementById("profile-edit-modal").classList.add("hidden");
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    const editForm = document.getElementById("profile-edit-form");
+    if (editForm) {
+        editForm.onsubmit = (e) => {
+            e.preventDefault();
+            if (!state.currentUser) return;
+            const newAvatar = document.getElementById("edit-avatar").value.trim();
+            state.currentUser.avatar = newAvatar;
+            
+            // Also update the main player card if exists
+            const myPlayer = state.players.find(p => p.username === state.currentUser.username && !p.id.includes("_starter_") && !p.id.includes("_pack_"));
+            if (myPlayer) {
+                myPlayer.avatar = newAvatar;
+            }
+            
+            saveDatabase();
+            closeProfileEditModal();
+            renderAll();
+        };
+    }
+});
 
 function drawValueChart(history) {
     const canvas = document.getElementById('pp-value-chart');
@@ -3634,7 +3672,11 @@ function renderGWHints() {
         // Save 24h cooldown when game finishes
         if (state.currentUser) {
             const user = state.users.find(u => u.username === state.currentUser.username);
-            if (user && !user.lastGuessWho) { user.lastGuessWho = Date.now(); state.currentUser.lastGuessWho = Date.now(); saveDatabase(); }
+            if (user) { 
+                user.lastGuessWho = Date.now(); 
+                state.currentUser.lastGuessWho = Date.now(); 
+                saveDatabase(); 
+            }
         }
         area.innerHTML = `<div style="text-align:center;"><h3 style="color:var(--accent-gold);">🏆 Oyun Bitti!</h3><p>Toplam Skor: <strong>${gwState.score}</strong>/10</p><p style="color:var(--text-muted);font-size:0.9rem;">Kazanılan Coin: <strong style="color:var(--accent-neon);">${gwState.score * 10}</strong></p><p style="color:var(--accent-blue);font-size:0.85rem;">Bir sonraki oyun 24 saat sonra açılacak.</p></div>`;
         return;

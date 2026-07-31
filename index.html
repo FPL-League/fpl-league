@@ -177,6 +177,10 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
+                                    <label for="register-avatar">Profil Fotoğrafı URL (İsteğe Bağlı)</label>
+                                    <input type="url" id="register-avatar" placeholder="https://ornek.com/foto.jpg">
+                                </div>
+                                <div class="form-group">
                                     <label for="register-password">Şifre</label>
                                     <input type="password" id="register-password" placeholder="En az 6 karakter" minlength="6" required>
                                 </div>
@@ -1091,6 +1095,25 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <!-- Player Profile Edit Modal -->
+    <div id="profile-edit-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 400px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; font-size: 1.5rem;"><i class="fa-solid fa-user-pen"></i> Profili Düzenle</h3>
+                <button class="btn btn-secondary" onclick="closeProfileEditModal()">Kapat</button>
+            </div>
+            
+            <form id="profile-edit-form">
+                <div class="form-group">
+                    <label for="edit-avatar">Profil Fotoğrafı URL</label>
+                    <input type="url" id="edit-avatar" placeholder="https://ornek.com/foto.jpg">
+                    <small class="text-muted">Avatarınızı değiştirmek için fotoğraf linki yapıştırın.</small>
+                </div>
+                <button type="submit" class="btn btn-accent w-full mt-4">Kaydet</button>
+            </form>
         </div>
     </div>
 
