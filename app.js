@@ -510,7 +510,7 @@ function renderAuthStatusBar() {
     const bar = document.getElementById("auth-status-bar");
     if (state.currentUser) {
         const coinText = state.currentUser.username === 'admin' ? "Sonsuz" : state.currentUser.coins;
-        const avatarImg = state.currentUser.avatar ? `<img src="${state.currentUser.avatar}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border: 2px solid var(--accent-neon);">` : `<i class="fa-solid fa-user-circle"></i>`;
+        const avatarImg = state.currentUser.avatar && state.currentUser.avatar.trim().length > 5 ? `<img src="${state.currentUser.avatar}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border: 2px solid var(--accent-neon);" onerror="this.outerHTML='<i class=\\'fa-solid fa-user-circle\\'></i>'">` : `<i class="fa-solid fa-user-circle"></i>`;
         
         bar.innerHTML = `
             <div class="auth-user-card" style="cursor: pointer;" onclick="openProfileEditModal()" title="Profili Düzenle">
@@ -896,7 +896,7 @@ function createFutCardHTML(player, ovr, cardClass) {
                 </div>
             </div>
             <div class="card-avatar">
-                ${player.avatar ? `<img src="${player.avatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : `<i class="fa-solid fa-user-ninja"></i>`}
+                ${player.avatar && player.avatar.trim().length > 5 ? `<img src="${player.avatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.outerHTML='<i class=\\'fa-solid fa-user-ninja\\'></i>'">` : `<i class="fa-solid fa-user-ninja"></i>`}
             </div>
             <div class="card-name" title="${player.name}">${player.name}</div>
             <div class="card-team-name">${getTeamName(player.teamId)}</div>
