@@ -597,7 +597,6 @@ function renderDashboard() {
 
     // Mini Standings
     const standings = calculateStandings().slice(0, 3);
-    const miniStandingsBody = document.getElementById("dashboard-standings-body");
     
     if (standings.length === 0) {
         miniStandingsBody.innerHTML = `<tr><td colspan="5" class="text-muted text-center">Takım eklenmedi</td></tr>`;
