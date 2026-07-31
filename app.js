@@ -107,7 +107,7 @@ function loadDatabase() {
     }
 
     if (db) {
-        db.ref('fpl_state').on('value', (snapshot) => {
+        db.ref('fpl_state').once('value', (snapshot) => {
             const data = snapshot.val();
             state.isLoaded = true;
             if (data) {
@@ -122,6 +122,28 @@ function loadDatabase() {
                 state.posts = data.posts || [];
                 state.bets = data.bets || [];
                 state.currentWeek = data.currentWeek || 1;
+
+                // ONE-TIME CLEANUP: migrate base64 avatars from Firebase to localStorage
+                let needsResave = false;
+                state.users.forEach(u => {
+                    if (u.avatar && u.avatar.startsWith('data:')) {
+                        localStorage.setItem(`fpl_avatar_${u.username}`, u.avatar);
+                        delete u.avatar;
+                        needsResave = true;
+                    }
+                });
+                state.players.forEach(p => {
+                    if (p.avatar && p.avatar.startsWith('data:')) {
+                        localStorage.setItem(`fpl_avatar_${p.username}`, p.avatar);
+                        delete p.avatar;
+                        needsResave = true;
+                    }
+                });
+                if (needsResave) {
+                    // Re-write clean (small) data back to Firebase
+                    console.log("Migrating avatars out of Firebase...");
+                    saveDatabase();
+                }
 
                 // Sync current user reference
                 if (state.currentUser) {
@@ -209,7 +231,34 @@ function loadDatabase() {
                 state.currentWeek = 1;
             }
 
+            // Save lean snapshot to localStorage for instant future loads
+            saveDatabase();
             renderAll();
+
+            // Now switch to real-time updates (after initial clean load)
+            db.ref('fpl_state').on('value', (snap) => {
+                const liveData = snap.val();
+                if (!liveData) return;
+                state.users = liveData.users || state.users;
+                state.teams = liveData.teams || state.teams;
+                state.players = liveData.players || state.players;
+                state.matches = liveData.matches || state.matches;
+                state.marketListings = liveData.marketListings || state.marketListings;
+                state.tradeOffers = liveData.tradeOffers || state.tradeOffers;
+                state.chatMessages = liveData.chatMessages || state.chatMessages;
+                state.news = liveData.news || state.news;
+                state.posts = liveData.posts || state.posts;
+                state.bets = liveData.bets || state.bets;
+                state.currentWeek = liveData.currentWeek || state.currentWeek;
+                // Restore avatars
+                state.players.forEach(p => { const a = localStorage.getItem(`fpl_avatar_${p.username}`); if (a) p.avatar = a; });
+                state.users.forEach(u => { const a = localStorage.getItem(`fpl_avatar_${u.username}`); if (a) u.avatar = a; });
+                if (state.currentUser) {
+                    const fu = state.users.find(u => u.username === state.currentUser.username);
+                    if (fu) { state.currentUser = { ...fu, draftSquad: state.draftSquad }; const a = localStorage.getItem(`fpl_avatar_${state.currentUser.username}`); if (a) state.currentUser.avatar = a; }
+                }
+                renderAll();
+            });
         });
     }
 }
