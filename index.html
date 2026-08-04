@@ -443,6 +443,10 @@
                                     <div id="matchmaking-status" style="margin-top:0.5rem; font-size:0.8rem; color:var(--accent-neon); text-align:center; display:none;">
                                         <i class="fa-solid fa-spinner fa-spin"></i> Eşleşme aranıyor...
                                     </div>
+                                    <div id="online-matchmaking-queue" style="margin-top:0.5rem; max-height:150px; overflow-y:auto; display:none;">
+                                        <h5 style="margin-bottom:0.5rem; color:var(--text-muted); font-size:0.8rem; text-align:center;">Aktif Arayanlar</h5>
+                                        <div id="online-players-list" style="display:flex; flex-direction:column; gap:0.3rem;"></div>
+                                    </div>
                                 </div>
                                 
                                 <button class="btn w-full mt-2" id="start-battle-btn" style="background:var(--accent-red); color:white;"><i class="fa-solid fa-robot"></i> BOT İLE SAVAŞ (BATTLE)</button>
@@ -939,7 +943,7 @@
                             <h4>Sistem Yönetimi</h4>
                         </div>
                         <p>Tüm verileri silip sistemi sıfırlayabilirsiniz. (İlk admin hesabı korunacaktır: admin / admin123)</p>
-                        <button class="btn btn-primary" id="recalc-values-btn" style="margin-right: 10px;">Değerleri Yeniden Hesapla</button>
+                        <button class="btn btn-primary" id="recalc-values-btn" style="margin-right: 10px;">Tüm Reytingleri ve Değerleri Yeniden Hesapla</button>
                         <button class="btn btn-danger" id="reset-system-btn">Tüm Lig Verilerini Sıfırla</button>
                     </div>
                 </section>
@@ -1161,6 +1165,6 @@
 
     <!-- NOTIFICATION TOAST -->
     <div id="notification-toast" class="toast hidden"></div>
-    <script src="app.js?v=7"></script>
+    <script src="app.js?v=8"></script>
 </body>
 </html>
