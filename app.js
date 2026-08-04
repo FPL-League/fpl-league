@@ -21,7 +21,6 @@ function showGoalCardAnimation(player) {
         `;
         revealScreen.classList.remove("hidden");
         
-        // Auto-hide after 3 seconds so the match continues smoothly
         setTimeout(() => {
             if (!revealScreen.classList.contains("hidden")) {
                 revealScreen.classList.add("hidden");
@@ -1248,7 +1247,6 @@ function updateMatchValues(match, statLogs) {
 }
 
 window.recalculateAllHistoricalValues = function() {
-    // 1. Reset all players to 100K and week 1
     // 1. Reset all players to 100K and week 1, and reset base ratings if stored
     state.players.forEach(p => {
         p.value = 100;
@@ -4396,201 +4394,6 @@ const _origRenderAll = window.renderAll || function() {};
 
 // Patch renderAll if it exists
 function patchRenderAll() {
-        badges.push({ icon: "👑", text: "Lig Lideri", color: "#ffd700" });
-    }
-    
-    // Goal king
-    const maxGoals = Math.max(...state.players.map(p => p.goals || 0));
-    if ((player.goals || 0) > 0 && player.goals === maxGoals) {
-        badges.push({ icon: "⚽", text: "Gol Kralı", color: "#00ff88" });
-    }
-    
-    // Assist king
-    const maxAssists = Math.max(...state.players.map(p => p.assists || 0));
-    if ((player.assists || 0) > 0 && player.assists === maxAssists) {
-        badges.push({ icon: "🎯", text: "Asist Kralı", color: "#4dabf7" });
-    }
-    
-    // Top value
-    const maxValue = Math.max(...state.players.map(p => p.value || 100));
-    if ((player.value || 100) >= maxValue && maxValue > 100) {
-        badges.push({ icon: "💎", text: "En Değerli", color: "#9d4edd" });
-    }
-    
-    // Top OVR
-    const maxOvr = Math.max(...state.players.map(p => getPlayerOVR(p)));
-    if (getPlayerOVR(player) >= maxOvr) {
-        badges.push({ icon: "🌟", text: "En Yüksek OVR", color: "#ffc078" });
-    }
-    
-    return badges;
-}
-
-// --- WEEKLY TOP PLAYER WIDGET ---
-function getWeeklyTopPlayer(week) {
-    // Find match stats for this week with highest match_points
-    const weekMatches = state.matches.filter(m => m.week === week && m.played && m.statLogs);
-    let bestPlayer = null;
-    let bestPoints = 0;
-    let bestRating = 0;
-    
-    weekMatches.forEach(m => {
-        (m.statLogs || []).forEach(log => {
-            const pts = (log.stats && log.stats.match_points) || 0;
-            const rating = (log.stats && log.stats.match_rating) || 0;
-            if (pts > bestPoints || (pts === bestPoints && rating > bestRating)) {
-                bestPoints = pts;
-                bestRating = rating;
-                const p = state.players.find(x => x.id === log.playerId);
-                if (p) bestPlayer = { ...p, weekPoints: pts, weekRating: rating };
-            }
-        });
-    });
-    
-    return bestPlayer;
-}
-
-function renderWeeklyTopPlayerWidget() {
-    const container = document.getElementById("weekly-top-player-widget");
-    if (!container) return;
-    
-    const currentWeek = state.currentWeek || 1;
-    const topPlayer = getWeeklyTopPlayer(currentWeek);
-    
-    if (!topPlayer) {
-        container.innerHTML = `<p class="text-muted" style="font-size:0.9rem;">Bu hafta henüz veri yok</p>`;
-        return;
-    }
-    
-    container.innerHTML = `
-        <div style="display:flex;align-items:center;gap:1rem;">
-            <div style="background:linear-gradient(135deg,var(--accent-gold),#ff6b6b);width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">⭐</div>
-            <div>
-                <div style="font-weight:700;font-size:1.1rem;">${topPlayer.name}</div>
-                <div style="color:var(--text-muted);font-size:0.85rem;">${topPlayer.weekPoints} Puan | Rating: ${topPlayer.weekRating}</div>
-            </div>
-        </div>
-        <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-            <button class="btn btn-secondary btn-sm" onclick="changeWeeklyWidget(-1)" style="padding:2px 8px;">&laquo; Önceki</button>
-            <span style="color:var(--accent-gold);font-weight:bold;">${currentWeek}. Hafta</span>
-            <button class="btn btn-secondary btn-sm" onclick="changeWeeklyWidget(1)" style="padding:2px 8px;">Sonraki &raquo;</button>
-        </div>
-    `;
-}
-
-let weeklyWidgetWeek = null;
-window.changeWeeklyWidget = function(direction) {
-    if (weeklyWidgetWeek === null) weeklyWidgetWeek = state.currentWeek || 1;
-    weeklyWidgetWeek += direction;
-    if (weeklyWidgetWeek < 1) weeklyWidgetWeek = 1;
-    
-    const topPlayer = getWeeklyTopPlayer(weeklyWidgetWeek);
-    const container = document.getElementById("weekly-top-player-widget");
-    if (!container) return;
-    
-    if (!topPlayer) {
-        container.innerHTML = `<p class="text-muted" style="font-size:0.9rem;">${weeklyWidgetWeek}. hafta verisi yok</p>
-        <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-            <button class="btn btn-secondary btn-sm" onclick="changeWeeklyWidget(-1)" style="padding:2px 8px;">&laquo; Önceki</button>
-            <span style="color:var(--accent-gold);font-weight:bold;">${weeklyWidgetWeek}. Hafta</span>
-            <button class="btn btn-secondary btn-sm" onclick="changeWeeklyWidget(1)" style="padding:2px 8px;">Sonraki &raquo;</button>
-        </div>`;
-        return;
-    }
-    
-    container.innerHTML = `
-        <div style="display:flex;align-items:center;gap:1rem;">
-            <div style="background:linear-gradient(135deg,var(--accent-gold),#ff6b6b);width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">⭐</div>
-            <div>
-                <div style="font-weight:700;font-size:1.1rem;">${topPlayer.name}</div>
-                <div style="color:var(--text-muted);font-size:0.85rem;">${topPlayer.weekPoints} Puan | Rating: ${topPlayer.weekRating}</div>
-            </div>
-        </div>
-        <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-            <button class="btn btn-secondary btn-sm" onclick="changeWeeklyWidget(-1)" style="padding:2px 8px;">&laquo; Önceki</button>
-            <span style="color:var(--accent-gold);font-weight:bold;">${weeklyWidgetWeek}. Hafta</span>
-            <button class="btn btn-secondary btn-sm" onclick="changeWeeklyWidget(1)" style="padding:2px 8px;">Sonraki &raquo;</button>
-        </div>
-    `;
-};
-
-// --- PLAYER PROFILE ENHANCEMENT (Badges + Win %) ---
-const _origOpenPlayerProfile = window.openPlayerProfileModal;
-window.openPlayerProfileModal = function(playerId) {
-    if (typeof _origOpenPlayerProfile === 'function') {
-        _origOpenPlayerProfile(playerId);
-    }
-    
-    // Add badges
-    const player = state.players.find(p => p.id === playerId);
-    if (!player) return;
-    
-    const badges = getPlayerBadges(player);
-    const nameEl = document.getElementById("pp-player-name");
-    if (nameEl && badges.length > 0) {
-        const badgeHTML = badges.map(b => `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.08);padding:3px 10px;border-radius:20px;font-size:0.75rem;border:1px solid ${b.color};color:${b.color};margin-left:6px;">${b.icon} ${b.text}</span>`).join("");
-        nameEl.innerHTML = `<i class="fa-solid fa-id-card"></i> ${player.name} ${badgeHTML}`;
-    }
-    
-    // Add win percentage
-    if (player.teamId) {
-        const teamMatches = state.matches.filter(m => m.played && (m.homeTeam === player.teamId || m.awayTeam === player.teamId));
-        const wins = teamMatches.filter(m => {
-            if (m.homeTeam === player.teamId) return m.homeScore > m.awayScore;
-            return m.awayScore > m.homeScore;
-        }).length;
-        const winPct = teamMatches.length > 0 ? Math.round((wins / teamMatches.length) * 100) : 0;
-        
-        // Add win % to the info cards area
-        const ppValue = document.getElementById("pp-value");
-        if (ppValue && ppValue.parentElement && ppValue.parentElement.parentElement) {
-            const existing = document.getElementById("pp-win-pct-card");
-            if (existing) existing.remove();
-            
-            const winCard = document.createElement("div");
-            winCard.id = "pp-win-pct-card";
-            winCard.style.cssText = "flex:1;min-width:140px;background:var(--surface-dark);border-radius:12px;padding:1rem;text-align:center;";
-            winCard.innerHTML = `<div style="font-size:0.8rem;color:var(--text-muted);text-transform:uppercase;">Kazanma %</div><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-blue);">%${winPct}</div>`;
-            ppValue.parentElement.parentElement.appendChild(winCard);
-        }
-    }
-};
-
-// --- ADD BETTING TOGGLE TO ADMIN FIXTURES ---
-const _origRenderAdminFixtures = renderAdminFixturesList;
-function renderAdminFixturesListV2() {
-    _origRenderAdminFixtures();
-    // Add betting toggle buttons
-    const container = document.getElementById("admin-fixtures-list");
-    if (!container) return;
-    
-    const rows = container.querySelectorAll("tr");
-    const sortedMatches = [...state.matches].sort((a, b) => a.week - b.week);
-    
-    rows.forEach((row, idx) => {
-        if (sortedMatches[idx]) {
-            const m = sortedMatches[idx];
-            const actionsDiv = row.querySelector("div");
-            if (actionsDiv && !actionsDiv.querySelector(".bet-toggle-btn")) {
-                const betBtn = document.createElement("button");
-                betBtn.className = "btn btn-sm bet-toggle-btn";
-                betBtn.style.cssText = m.bettingOpen ? "background:var(--accent-neon);color:black;" : "background:rgba(255,255,255,0.05);color:var(--text-muted);";
-                betBtn.innerHTML = m.bettingOpen ? '<i class="fa-solid fa-dice"></i> Bahis Açık' : '<i class="fa-solid fa-dice"></i> Bahis Kapalı';
-                betBtn.onclick = () => toggleBetting(m.id);
-                actionsDiv.appendChild(betBtn);
-            }
-        }
-    });
-}
-
-// Override original
-window.renderAdminFixturesList = renderAdminFixturesListV2;
-
-// --- INIT NEW FEATURES ---
-const _origRenderAll = window.renderAll || function() {};
-
-// Patch renderAll if it exists
-function patchRenderAll() {
     const originalRA = window.renderAll;
     if (!originalRA) return;
     
@@ -4626,20 +4429,18 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // --- ONLINE MATCHMAKING ---
 let isMatchmaking = false;
+let matchmakingInterval = null;
 
 window.toggleOnlineMatchmaking = function() {
     if (!state.currentUser) {
         alert("Rakip aramak için giriş yapmalısınız.");
         return;
     }
-    
-    // Kadro kontrolü
     const squadArray = state.draftSquad ? Object.values(state.draftSquad).filter(p => p !== null) : [];
     if (squadArray.length < 5) {
         alert("Maç aramak için 5 kişilik kadronuzu kurmalısınız!");
         return;
     }
-
     const btn = document.getElementById("search-online-match-btn");
     const status = document.getElementById("matchmaking-status");
     const queueContainer = document.getElementById("online-matchmaking-queue");
@@ -4650,13 +4451,12 @@ window.toggleOnlineMatchmaking = function() {
         btn.innerHTML = `<i class="fa-solid fa-xmark"></i> Aramayı İptal Et`;
         btn.classList.replace("btn-primary", "btn-danger");
         status.style.display = "block";
-        queueContainer.style.display = "block";
+        if(queueContainer) queueContainer.style.display = "block";
         
         const myRating = parseInt(document.getElementById("draft-rating").innerText) || 70;
         const myChem = parseInt(document.getElementById("draft-chemistry").innerText) || 0;
         
-        // Firebase'e ekle
-        db.ref('fpl_matchmaking/' + state.currentUser.uid).set({
+        db.ref("fpl_matchmaking/" + state.currentUser.uid).set({
             uid: state.currentUser.uid,
             username: state.currentUser.username,
             nickname: state.currentUser.nickname,
@@ -4666,28 +4466,21 @@ window.toggleOnlineMatchmaking = function() {
             timestamp: Date.now()
         });
         
-        // Dinlemeye başla
-        db.ref('fpl_matchmaking').on('value', (snapshot) => {
+        db.ref("fpl_matchmaking").on("value", (snapshot) => {
             const data = snapshot.val();
-            listContainer.innerHTML = "";
-            if(data) {
+            if(listContainer) listContainer.innerHTML = "";
+            if(data && listContainer) {
                 Object.values(data).forEach(player => {
                     if (player.uid !== state.currentUser.uid) {
                         const div = document.createElement("div");
                         div.style = "display:flex; justify-content:space-between; align-items:center; background:var(--surface-light); padding:0.5rem; border-radius:6px;";
                         const avatarHtml = player.avatar ? `<img src="${player.avatar}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:5px;">` : `<i class="fa-solid fa-user-circle" style="margin-right:5px;"></i>`;
-                        div.innerHTML = `
-                            <div style="display:flex; align-items:center; font-size:0.8rem;">
-                                ${avatarHtml} 
-                                <span>${player.nickname} <span style="color:var(--accent-gold);">(${player.rating})</span></span>
-                            </div>
-                            <button class="btn btn-primary" style="padding:0.2rem 0.5rem; font-size:0.7rem;" onclick="challengePlayer('${player.uid}')">Oyna</button>
-                        `;
+                        div.innerHTML = `<div style="display:flex; align-items:center; font-size:0.8rem;">${avatarHtml} <span>${player.nickname} <span style="color:var(--accent-gold);">(${player.rating})</span></span></div><button class="btn btn-primary" style="padding:0.2rem 0.5rem; font-size:0.7rem;" onclick="challengePlayer('${player.uid}')">Oyna</button>`;
                         listContainer.appendChild(div);
                     }
                 });
             }
-            if (listContainer.innerHTML === "") {
+            if (listContainer && listContainer.innerHTML === "") {
                 listContainer.innerHTML = `<div style="text-align:center; font-size:0.75rem; color:var(--text-muted);">Bekleyen rakip yok...</div>`;
             }
         });
@@ -4695,20 +4488,18 @@ window.toggleOnlineMatchmaking = function() {
         btn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Rakip Ara`;
         btn.classList.replace("btn-danger", "btn-primary");
         status.style.display = "none";
-        queueContainer.style.display = "none";
-        db.ref('fpl_matchmaking/' + state.currentUser.uid).remove();
-        db.ref('fpl_matchmaking').off();
+        if(queueContainer) queueContainer.style.display = "none";
+        db.ref("fpl_matchmaking/" + state.currentUser.uid).remove();
+        db.ref("fpl_matchmaking").off();
     }
 };
 
 window.challengePlayer = function(targetUid) {
-    db.ref('fpl_matchmaking/' + targetUid).once('value', snapshot => {
+    db.ref("fpl_matchmaking/" + targetUid).once("value", snapshot => {
         const oppData = snapshot.val();
         if (oppData) {
-            // Find real user data
             const opponent = state.users.find(u => u.username === oppData.username);
             if (opponent) {
-                // Remove self from queue
                 if(isMatchmaking) toggleOnlineMatchmaking(); 
                 showMatchFound(opponent);
             } else {
@@ -4721,6 +4512,15 @@ window.challengePlayer = function(targetUid) {
 };
 
 function showMatchFound(opponent) {
+    clearTimeout(matchmakingInterval);
+    const btn = document.getElementById("search-online-match-btn");
+    const status = document.getElementById("matchmaking-status");
+    if(btn) {
+        btn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Rakip Ara`;
+        btn.classList.replace("btn-danger", "btn-primary");
+    }
+    if(status) status.style.display = "none";
+    isMatchmaking = false;
     
     window.currentOnlineOpponent = opponent;
     
@@ -4744,8 +4544,7 @@ window.cancelMatchFound = function() {
 
 window.acceptMatch = function() {
     document.getElementById("mf-waiting-status").style.display = "block";
-    
-    // Simüle veya gerçek bir gecikme
+    // Simulate opponent accepting
     setTimeout(() => {
         document.getElementById("match-found-screen").classList.add("hidden");
         document.getElementById("mf-waiting-status").style.display = "none";
@@ -4756,8 +4555,8 @@ window.acceptMatch = function() {
 function startBattleWithOpponent(opponent) {
     if(!opponent) return;
     battleSimulator.lastOpponentName = `${opponent.nickname} Kadrosu`;
-    // Pass the opponent explicitly to startBattle
-    startBattle(opponent);
+    // Force the opponent into the battle arena
+    document.getElementById("start-battle-btn").click();
 }
 
 // --- UT STATS UPDATER ---
