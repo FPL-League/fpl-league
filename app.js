@@ -37,7 +37,7 @@ function showGoalCardAnimation(player) {
 const DEFAULT_ADMIN = {
     username: "admin",
     nickname: "Sistem Yöneticisi",
-    password: "admin123",
+    password: "Halisaha_Admin_2026!",
     role: "admin",
     coins: 99999,
     inventory: []
