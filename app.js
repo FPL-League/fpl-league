@@ -3228,6 +3228,27 @@ function initEventHandlers() {
         }
     };
 
+    const releaseBtn = document.getElementById("admin-release-player-btn");
+    if (releaseBtn) {
+        releaseBtn.onclick = () => {
+            const pId = document.getElementById("edit-select-player").value;
+            if (!pId) {
+                alert("Lütfen önce bir oyuncu seçin!");
+                return;
+            }
+            if (confirm("Bu oyuncuyu serbest bırakmak (takımından çıkarmak) istediğinize emin misiniz?")) {
+                const player = state.players.find(p => p.id === pId);
+                if (player) {
+                    player.teamId = "";
+                    document.getElementById("edit-player-team").value = "";
+                    saveDatabase();
+                    alert("Oyuncu başarıyla serbest bırakıldı.");
+                    renderAll();
+                }
+            }
+        };
+    }
+
     document.getElementById("admin-match-form").onsubmit = (e) => {
         e.preventDefault();
         
