@@ -1191,23 +1191,58 @@ function updateMatchValues(match, statLogs) {
         valueChange -= s.yellows * 5;
         valueChange -= s.reds * 10;
         
-        // Auto Match Rating Calculation
+        // ─── OTOMATİK MAÇ PUANI HESABI ───────────────────────────────────────────
+        // Ağırlıklar pozisyona göre değişir.
+        // Gol ve asist en değerli eylemlerdir.
+        // Müdahale (tackle) fazla sayıda yapıldığında zaten az puan getirir.
         if (hasStats || s.matchRating > 0) {
-            let autoRating = 6.0; // Base rating for playing
-            autoRating += s.goals * 1.2;
-            autoRating += s.assists * 0.8;
-            if (p.position === 'kaleci') autoRating += s.saves * 0.5;
-            if (p.position === 'defans') autoRating += s.tackles * 0.3;
-            autoRating -= s.yellows * 0.5;
-            autoRating -= s.reds * 1.5;
-            
-            // Limit to max 10.0
-            if (autoRating > 10.0) autoRating = 10.0;
-            
-            p.matchRating = parseFloat(autoRating.toFixed(1));
-            s.matchRating = p.matchRating; // update s for downstream usage
+            let autoRating = 6.0; // Maça çıkmanın temel puanı
 
-            // Add stat log for match_rating if it doesn't exist so UI can show it
+            // ── GOL ──────────────────────────────────────────────────────────────
+            // Forvet için gol birincil katkıdır → çok değerli
+            // Diğer mevkiler için de önemli ama biraz daha az
+            if (p.position === 'forvet')    autoRating += s.goals * 1.5;
+            else if (p.position === 'orta_saha') autoRating += s.goals * 1.3;
+            else                             autoRating += s.goals * 1.0;
+
+            // ── ASİST ────────────────────────────────────────────────────────────
+            // Orta saha için asist birincil katkıdır
+            if (p.position === 'orta_saha') autoRating += s.assists * 1.2;
+            else                             autoRating += s.assists * 0.9;
+
+            // ── KURTARIŞ (sadece kaleci) ──────────────────────────────────────────
+            // 1 kurtarış = 0.25 (azami katkı ~2.5 puan, yani 10 kurtarışta)
+            if (p.position === 'kaleci') {
+                const savesBonus = Math.min(s.saves, 10) * 0.25; // En fazla 10 kurtarışa kadar say
+                autoRating += savesBonus;
+            }
+
+            // ── MÜDAHALE (sadece defans) ─────────────────────────────────────────
+            // Tackle başına 0.15 puan, en fazla 6 tackle sayılır (= +0.9 puan maks)
+            // Böylece 11 tackle bile 6.9'a ulaştırmaz, gol/asist hâlâ çok daha değerli
+            if (p.position === 'defans') {
+                const tacklesBonus = Math.min(s.tackles, 6) * 0.15;
+                autoRating += tacklesBonus;
+            }
+
+            // ── CEZALAR ──────────────────────────────────────────────────────────
+            autoRating -= s.yellows * 0.7;  // Sarı kart daha caydırıcı
+            autoRating -= s.reds * 2.0;     // Kırmızı kart çok ağır
+
+            // ── MEVKI BAZLI CEZA (iyi performans beklentisi) ─────────────────────
+            // Gol atmayan forvet, asist yapmayan orta saha biraz ceza alır
+            // Ancak bu ceza yalnızca hiç gol/asist yoksa uygulanır
+            if (p.position === 'forvet'    && s.goals === 0 && s.assists === 0) autoRating -= 0.5;
+            if (p.position === 'orta_saha' && s.assists === 0 && s.goals === 0) autoRating -= 0.3;
+            if (p.position === 'defans'    && s.tackles < 3)                    autoRating -= 0.3;
+            if (p.position === 'kaleci'    && s.saves < 2)                      autoRating -= 0.4;
+
+            // ── SINIRLAR ──────────────────────────────────────────────────────────
+            autoRating = Math.max(4.0, Math.min(10.0, autoRating));
+
+            p.matchRating = parseFloat(autoRating.toFixed(1));
+            s.matchRating = p.matchRating;
+
             if (!statLogs.some(l => l.playerId === pid && l.type === 'match_rating')) {
                 statLogs.push({ id: Date.now() + Math.random(), playerId: pid, type: 'match_rating', count: p.matchRating });
             }
@@ -1215,7 +1250,6 @@ function updateMatchValues(match, statLogs) {
         
         p.value = Math.max(10, (p.value || 100) + valueChange);
         
-        // Add to history
         if (!p.valueHistory) p.valueHistory = [{ week: 1, value: 100 }];
         const lastEntry = p.valueHistory[p.valueHistory.length - 1];
         if (lastEntry.week === currentWeek) {
@@ -1224,18 +1258,23 @@ function updateMatchValues(match, statLogs) {
             p.valueHistory.push({ week: currentWeek, value: p.value });
         }
 
-        // STAT UPGRADES based on Auto Match Rating
-        if (s.matchRating >= 8.5) {
-            if (p.position === 'forvet') { p.ratings.sho += 2; p.ratings.pac += 1; }
-            else if (p.position === 'orta_saha') { p.ratings.pas += 2; p.ratings.dri += 1; }
-            else if (p.position === 'defans') { p.ratings.def += 2; p.ratings.phy += 1; }
-            else if (p.position === 'kaleci') { p.ratings.pac += 1; p.ratings.def += 1; /* Using pac/def for gk stats currently */ }
-        } else if (s.matchRating >= 7.5) {
-            if (p.position === 'forvet') { p.ratings.sho += 1; }
-            else if (p.position === 'orta_saha') { p.ratings.pas += 1; }
-            else if (p.position === 'defans') { p.ratings.def += 1; }
-            else if (p.position === 'kaleci') { p.ratings.pac += 1; }
+        // ─── OVR İYİLEŞTİRMELERİ ─────────────────────────────────────────────────
+        // Eşik değerleri yükseltildi: 9.0+ çok iyi, 8.0+ iyi, 7.0+ ortalama üstü
+        // Artış miktarları küçük tutuldu — maç başına en fazla 1-2 puan
+        if (s.matchRating >= 9.0) {
+            // Olağanüstü performans: 2 gol + 1 asist veya benzer
+            if (p.position === 'forvet')    { p.ratings.sho = Math.min(99, p.ratings.sho + 2); p.ratings.pac = Math.min(99, p.ratings.pac + 1); }
+            else if (p.position === 'orta_saha') { p.ratings.pas = Math.min(99, p.ratings.pas + 2); p.ratings.dri = Math.min(99, p.ratings.dri + 1); }
+            else if (p.position === 'defans')    { p.ratings.def = Math.min(99, p.ratings.def + 2); p.ratings.phy = Math.min(99, p.ratings.phy + 1); }
+            else if (p.position === 'kaleci')    { p.ratings.pac = Math.min(99, p.ratings.pac + 1); p.ratings.def = Math.min(99, p.ratings.def + 2); }
+        } else if (s.matchRating >= 8.0) {
+            // İyi performans: 1 gol + 1 asist, ya da 1 gol veya 2 asist
+            if (p.position === 'forvet')    { p.ratings.sho = Math.min(99, p.ratings.sho + 1); }
+            else if (p.position === 'orta_saha') { p.ratings.pas = Math.min(99, p.ratings.pas + 1); }
+            else if (p.position === 'defans')    { p.ratings.def = Math.min(99, p.ratings.def + 1); }
+            else if (p.position === 'kaleci')    { p.ratings.pac = Math.min(99, p.ratings.pac + 1); }
         }
+        // 7.5 altı: OVR değişmez — zaten oynayan oyuncu için base rating 6.0
     });
 }
 
