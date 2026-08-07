@@ -132,10 +132,16 @@ function loadDatabase() {
 
     if (db) {
         db.ref('fpl_state').on('value', (snapshot) => {
+            if (!snapshot.exists()) return;
             const data = snapshot.val();
             state.isLoaded = true;
-            if (data && data.users && data.users.length > 0) {
+            if (data && data.users) {
                 state.users = data.users || [];
+                
+                // Güvenlik: Eğer eski veritabanından sızan veya cache'den gelen şifreler varsa onları hafızadan sil. 
+                // Artık şifreler sadece fpl_auth düğümünde duruyor.
+                state.users.forEach(u => delete u.password);
+
                 state.teams = data.teams || [];
                 state.players = data.players || [];
                 state.matches = data.matches || [];
@@ -502,22 +508,42 @@ function initAuthHandlers() {
         // Allow login by exact username or exact nickname (case-insensitive)
         const user = state.users.find(u => 
             (u.username.toLowerCase() === inputStr || (u.nickname && u.nickname.toLowerCase() === inputStr)) 
-            && u.password === hashedPass
         );
         
-        if (user) {
-            state.currentUser = user;
-            saveDatabase();
-            formLogin.reset();
-            renderAll();
-            
-            if (user.role === 'admin') {
-                switchTab("admin");
-            } else {
-                switchTab("dashboard");
-            }
-        } else {
+        if (!user) {
             alert("Hatalı Oyun İçi ID veya şifre!");
+            return;
+        }
+
+        const loginBtn = formLogin.querySelector('button[type="submit"]');
+        const origText = loginBtn.innerText;
+        loginBtn.innerText = "Giriş Yapılıyor...";
+        loginBtn.disabled = true;
+
+        try {
+            const authSnap = await db.ref('fpl_auth/' + user.username).once('value');
+            const storedHash = authSnap.val();
+
+            if (storedHash === hashedPass) {
+                state.currentUser = user;
+                saveDatabase();
+                formLogin.reset();
+                renderAll();
+                
+                if (user.role === 'admin') {
+                    switchTab("admin");
+                } else {
+                    switchTab("dashboard");
+                }
+            } else {
+                alert("Hatalı Oyun İçi ID veya şifre!");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Bağlantı hatası, lütfen tekrar deneyin.");
+        } finally {
+            loginBtn.innerText = origText;
+            loginBtn.disabled = false;
         }
     };
 
@@ -611,13 +637,17 @@ function initAuthHandlers() {
         const newUser = {
             username: uid,
             nickname: nickname,
-            password: hashedPass,
             avatar: avatarUrl,
             role: "player",
             coins: 250, // Starts with 250 Coins
             inventory: starterIds,
             createdAt: Date.now()
         };
+
+        // Firebase fpl_auth düğümüne şifreyi ayrı kaydet
+        if (db) {
+            await db.ref('fpl_auth/' + uid).set(hashedPass);
+        }
 
         state.users.push(newUser);
         state.currentUser = newUser;
