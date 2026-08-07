@@ -1261,13 +1261,16 @@ function updateMatchValues(match, statLogs) {
         // ─── OVR İYİLEŞTİRMELERİ ─────────────────────────────────────────────────
         // Eşik değerleri yükseltildi: 9.0+ çok iyi, 8.0+ iyi, 7.0+ ortalama üstü
         // Artış miktarları küçük tutuldu — maç başına en fazla 1-2 puan
+        let upgraded = false;
         if (s.matchRating >= 9.0) {
+            upgraded = true;
             // Olağanüstü performans: 2 gol + 1 asist veya benzer
             if (p.position === 'forvet')    { p.ratings.sho = Math.min(99, p.ratings.sho + 2); p.ratings.pac = Math.min(99, p.ratings.pac + 1); }
             else if (p.position === 'orta_saha') { p.ratings.pas = Math.min(99, p.ratings.pas + 2); p.ratings.dri = Math.min(99, p.ratings.dri + 1); }
             else if (p.position === 'defans')    { p.ratings.def = Math.min(99, p.ratings.def + 2); p.ratings.phy = Math.min(99, p.ratings.phy + 1); }
             else if (p.position === 'kaleci')    { p.ratings.pac = Math.min(99, p.ratings.pac + 1); p.ratings.def = Math.min(99, p.ratings.def + 2); }
         } else if (s.matchRating >= 8.0) {
+            upgraded = true;
             // İyi performans: 1 gol + 1 asist, ya da 1 gol veya 2 asist
             if (p.position === 'forvet')    { p.ratings.sho = Math.min(99, p.ratings.sho + 1); }
             else if (p.position === 'orta_saha') { p.ratings.pas = Math.min(99, p.ratings.pas + 1); }
@@ -1275,6 +1278,14 @@ function updateMatchValues(match, statLogs) {
             else if (p.position === 'kaleci')    { p.ratings.pac = Math.min(99, p.ratings.pac + 1); }
         }
         // 7.5 altı: OVR değişmez — zaten oynayan oyuncu için base rating 6.0
+
+        // Ana kartın reytingi arttıysa, o oyuncuya ait tüm Ultimate Team (paket) kartlarını da güncelle (Live Card özelliği)
+        if (upgraded && p.username) {
+            const utCopies = state.players.filter(copy => copy.isUTCard && copy.username === p.username);
+            utCopies.forEach(copy => {
+                copy.ratings = JSON.parse(JSON.stringify(p.ratings));
+            });
+        }
     });
 }
 
