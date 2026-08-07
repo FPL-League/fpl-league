@@ -199,6 +199,16 @@ function loadDatabase() {
                     if (!p.valueHistory) p.valueHistory = [{ week: 1, value: p.value || 100 }];
                 });
 
+                // Canlı UT Kartları: Tüm UT kartlarının reytinglerini ana kart ile eşitle
+                state.players.forEach(p => {
+                    if (p.isUTCard && p.username) {
+                        const basePlayer = state.players.find(bp => !bp.isUTCard && bp.username === p.username);
+                        if (basePlayer) {
+                            p.ratings = JSON.parse(JSON.stringify(basePlayer.ratings));
+                        }
+                    }
+                });
+
                 // Auto-migration: if we found avatars in localStorage that Firebase
                 // didn't have, push them to Firebase ONCE so other devices can see them.
                 let avatarsMigrated = false;
@@ -249,6 +259,17 @@ function loadDatabase() {
                                 if (a) p.avatar = a;
                             }
                         });
+                        
+                        // Canlı UT Kartları (Offline Cache): Tüm UT kartlarının reytinglerini ana kart ile eşitle
+                        state.players.forEach(p => {
+                            if (p.isUTCard && p.username) {
+                                const basePlayer = state.players.find(bp => !bp.isUTCard && bp.username === p.username);
+                                if (basePlayer) {
+                                    p.ratings = JSON.parse(JSON.stringify(basePlayer.ratings));
+                                }
+                            }
+                        });
+
                         // Write full state WITH avatars back to Firebase
                         db.ref('fpl_state').set({
                             users: state.users,
