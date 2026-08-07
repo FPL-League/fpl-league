@@ -1058,6 +1058,16 @@ function renderPlayers(filter = "all", searchQuery = "") {
 }
 
 function createFutCardHTML(player, ovr, cardClass) {
+    let displayTeamId = player.teamId;
+    
+    // UT kartları için oyuncunun güncel gerçek takımını dinamik olarak bul
+    if (player.isUTCard && player.username) {
+        const basePlayer = state.players.find(p => !p.isUTCard && p.username === player.username);
+        if (basePlayer) {
+            displayTeamId = basePlayer.teamId;
+        }
+    }
+
     const isGK = player.position === "kaleci";
     return `
         <div class="fut-card ${cardClass}">
@@ -1067,14 +1077,14 @@ function createFutCardHTML(player, ovr, cardClass) {
                     <span class="card-pos">${player.position === "orta_saha" ? "ORT" : player.position.slice(0, 3)}</span>
                 </div>
                 <div>
-                    ${getTeamLogo(player.teamId)}
+                    ${getTeamLogo(displayTeamId)}
                 </div>
             </div>
             <div class="card-avatar">
                 ${player.avatar && player.avatar.trim().length > 5 ? `<img src="${player.avatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.outerHTML='<i class=\\'fa-solid fa-user-ninja\\'></i>'">` : `<i class="fa-solid fa-user-ninja"></i>`}
             </div>
             <div class="card-name" title="${player.name}">${player.name}</div>
-            <div class="card-team-name">${getTeamName(player.teamId)}</div>
+            <div class="card-team-name">${getTeamName(displayTeamId)}</div>
             <div class="card-stats">
                 <div class="card-stat-item">
                     <span class="card-stat-label">${isGK ? 'REF' : 'PAC'}</span>
@@ -2153,7 +2163,7 @@ window.openPack = function(packType) {
             id: "p_pack_" + (selectedTemplate.username || "user") + "_" + Date.now(),
             username: selectedTemplate.username || "",
             name: selectedTemplate.name || "İsimsiz Oyuncu",
-            teamId: "", // free
+            teamId: selectedTemplate.teamId || "", // Kopyalanan oyuncunun takımını kullan
             position: selectedTemplate.position || "orta_saha",
             ratings: JSON.parse(JSON.stringify(ratings)),
             goals: 0,
@@ -2252,7 +2262,7 @@ window.openDailyPack = function() {
             id: "p_pack_" + (selectedTemplate.username || "user") + "_" + Date.now(),
             username: selectedTemplate.username || "",
             name: selectedTemplate.name || "Günlük Oyuncu",
-            teamId: "",
+            teamId: selectedTemplate.teamId || "", // Kopyalanan oyuncunun takımını kullan
             position: selectedTemplate.position || "orta_saha",
             ratings: JSON.parse(JSON.stringify(ratings)),
             goals: 0,
