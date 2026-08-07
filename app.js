@@ -486,15 +486,23 @@ function initAuthHandlers() {
         }
     };
 
-    formLogin.onsubmit = (e) => {
+    async function hashPassword(message) {
+        const msgBuffer = new TextEncoder().encode(message);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    formLogin.onsubmit = async (e) => {
         e.preventDefault();
         const inputStr = document.getElementById("login-username").value.trim().toLowerCase();
-        const pass = document.getElementById("login-password").value;
+        const rawPass = document.getElementById("login-password").value;
+        const hashedPass = await hashPassword(rawPass);
 
         // Allow login by exact username or exact nickname (case-insensitive)
         const user = state.users.find(u => 
             (u.username.toLowerCase() === inputStr || (u.nickname && u.nickname.toLowerCase() === inputStr)) 
-            && u.password === pass
+            && u.password === hashedPass
         );
         
         if (user) {
@@ -518,7 +526,8 @@ function initAuthHandlers() {
         const uid = document.getElementById("register-username").value.trim().toLowerCase();
         const nickname = document.getElementById("register-nickname").value.trim();
         const position = document.getElementById("register-position").value;
-        const pass = document.getElementById("register-password").value;
+        const rawPass = document.getElementById("register-password").value;
+        const hashedPass = await hashPassword(rawPass);
         const fileInput = document.getElementById("register-avatar");
         const selectedTeamId = document.getElementById("register-team") ? document.getElementById("register-team").value : "";
 
@@ -602,7 +611,7 @@ function initAuthHandlers() {
         const newUser = {
             username: uid,
             nickname: nickname,
-            password: pass,
+            password: hashedPass,
             avatar: avatarUrl,
             role: "player",
             coins: 250, // Starts with 250 Coins
