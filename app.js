@@ -34,14 +34,7 @@ function showGoalCardAnimation(player) {
 // ==========================================================================
 
 // --- SEED ADMIN CREATION ---
-const DEFAULT_ADMIN = {
-    username: "admin",
-    nickname: "Sistem Yöneticisi",
-    password: "Halisaha_Admin_2026!",
-    role: "admin",
-    coins: 99999,
-    inventory: []
-};
+// Admin hesabı güvenlik nedeniyle kaldırıldı. Admin yetkisi Firebase'de manuel olarak verilir.
 
 // --- FIREBASE CONFIGURATION ---
 const firebaseConfig = {
@@ -63,7 +56,7 @@ const db = typeof firebase !== 'undefined' ? firebase.database() : null;
 
 // --- APP STATE CONTAINER ---
 let state = {
-    users: [DEFAULT_ADMIN], // Failsafe so admin can login instantly before Firebase loads
+    users: [], // Admin hesabı koddan kaldırıldı; Firebase'den gelir
     teams: [],
     players: [],
     matches: [],
@@ -174,7 +167,7 @@ function loadDatabase() {
                     const freshUser = state.users.find(u => u.username === state.currentUser.username);
                     if (freshUser) {
                         state.currentUser = { ...freshUser, draftSquad: state.draftSquad };
-                        if (state.currentUser.username === 'admin') state.currentUser.role = 'admin';
+                        // (admin role artık Firebase'de saklanıyor, özel işlem yok)
                         const localAvatar = localStorage.getItem(`fpl_avatar_${state.currentUser.username}`);
                         if (localAvatar) state.currentUser.avatar = localAvatar;
                     } else {
@@ -359,7 +352,7 @@ function saveDatabase() {
 }
 
 function resetToDefault() {
-    state.users = [DEFAULT_ADMIN];
+    state.users = []; // Sıfırlamada admin hesabı oluşturulmaz
     state.teams = [];
     state.players = [];
     state.matches = [];
