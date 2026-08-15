@@ -1359,6 +1359,31 @@ function updateMatchValues(match, statLogs) {
     });
 }
 
+window.releaseAllPlayersGlobal = function() {
+    if (!state.currentUser || state.currentUser.role !== 'admin') {
+        alert("Yetkiniz yok!");
+        return;
+    }
+    
+    if (confirm("DİKKAT: Sistemdeki TÜM oyuncular serbest oyuncu (takımsız) durumuna düşürülecek. Devam etmek istiyor musunuz?")) {
+        let changed = 0;
+        state.players.forEach(p => {
+            if (p.teamId !== "") {
+                p.teamId = "";
+                changed++;
+            }
+        });
+        
+        if (changed > 0) {
+            saveDatabase();
+            renderAll();
+            alert(`Toplam ${changed} oyuncu serbest bırakıldı.`);
+        } else {
+            alert("Zaten tüm oyuncular serbest durumdaydı.");
+        }
+    }
+};
+
 window.recalculateAllHistoricalValues = function() {
     // 1. Reset all players to 100K and week 1, and reset base ratings if stored
     state.players.forEach(p => {
