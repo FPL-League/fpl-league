@@ -1400,6 +1400,7 @@ window.resetAllRatingsGlobal = function() {
             if (p.baseRatings) {
                 p.ratings = JSON.parse(JSON.stringify(p.baseRatings));
             } else {
+                p.ratings = { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 };
                 p.baseRatings = JSON.parse(JSON.stringify(p.ratings));
             }
             
@@ -1452,7 +1453,8 @@ window.resetAllStatisticsGlobal = function() {
             if (p.baseRatings) {
                 p.ratings = JSON.parse(JSON.stringify(p.baseRatings));
             } else {
-                // If they don't have baseRatings for some reason, we set baseRatings to current so it stops growing
+                // If they don't have baseRatings for some reason, assume 70 OVR start
+                p.ratings = { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 };
                 p.baseRatings = JSON.parse(JSON.stringify(p.ratings));
             }
             
@@ -1484,6 +1486,7 @@ window.recalculateAllHistoricalValues = function() {
         p.valueHistory = [{ week: 1, value: 100 }];
         // Ensure baseRatings exists
         if (!p.baseRatings) {
+            p.ratings = { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 };
             p.baseRatings = JSON.parse(JSON.stringify(p.ratings)); // Save current as base if not exists
         } else {
             p.ratings = JSON.parse(JSON.stringify(p.baseRatings)); // Reset to base before historical re-run
