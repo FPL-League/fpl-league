@@ -1384,6 +1384,46 @@ window.releaseAllPlayersGlobal = function() {
     }
 };
 
+window.resetAllRatingsGlobal = function() {
+    if (!state.currentUser || state.currentUser.role !== 'admin') {
+        alert("Yetkiniz yok!");
+        return;
+    }
+
+    if (confirm("DİKKAT: Sistemdeki TÜM oyuncuların reytingleri ve piyasa değerleri orijinal (başlangıç) hallerine dönecektir. Oynanan maçlar ve gol/asist istatistikleri silinmez. Sadece reytingler sıfırlanır. Emin misiniz?")) {
+        // Reset all players
+        state.players.forEach(p => {
+            // Reset match rating cache
+            p.matchRating = null;
+            
+            // Reset OVR to base ratings
+            if (p.baseRatings) {
+                p.ratings = JSON.parse(JSON.stringify(p.baseRatings));
+            } else {
+                p.baseRatings = JSON.parse(JSON.stringify(p.ratings));
+            }
+            
+            // Reset Market Value
+            p.value = 100;
+            p.valueHistory = [{ week: 1, value: 100 }];
+        });
+
+        // Sync UT cards with their base player's new base ratings
+        state.players.forEach(p => {
+            if (p.isUTCard && p.username) {
+                const basePlayer = state.players.find(bp => !bp.isUTCard && bp.username === p.username);
+                if (basePlayer) {
+                    p.ratings = JSON.parse(JSON.stringify(basePlayer.ratings));
+                }
+            }
+        });
+
+        saveDatabase();
+        renderAll();
+        alert("Tüm oyuncuların reytingleri ve piyasa değerleri sıfırlandı.");
+    }
+};
+
 window.resetAllStatisticsGlobal = function() {
     if (!state.currentUser || state.currentUser.role !== 'admin') {
         alert("Yetkiniz yok!");
