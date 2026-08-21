@@ -1384,6 +1384,59 @@ window.releaseAllPlayersGlobal = function() {
     }
 };
 
+window.resetAllStatisticsGlobal = function() {
+    if (!state.currentUser || state.currentUser.role !== 'admin') {
+        alert("Yetkiniz yok!");
+        return;
+    }
+
+    if (confirm("DİKKAT: Sistemdeki TÜM oyuncuların gol, asist, kurtarış vb. istatistikleri, reytingleri ve piyasa değerleri sıfırlanacak. Ayrıca tüm oynanmış MAÇ GEÇMİŞİ de silinecektir. Emin misiniz?")) {
+        // 1. Clear all matches (which wipes the leaderboard and history)
+        state.matches = [];
+        state.currentWeek = 1;
+        
+        // 2. Reset all players
+        state.players.forEach(p => {
+            // Reset base stats
+            p.goals = 0;
+            p.assists = 0;
+            p.saves = 0;
+            p.tackles = 0;
+            p.yellowCards = 0;
+            p.redCards = 0;
+            
+            // Reset match rating cache
+            p.matchRating = null;
+            
+            // Reset OVR to base ratings
+            if (p.baseRatings) {
+                p.ratings = JSON.parse(JSON.stringify(p.baseRatings));
+            } else {
+                // If they don't have baseRatings for some reason, we set baseRatings to current so it stops growing
+                p.baseRatings = JSON.parse(JSON.stringify(p.ratings));
+            }
+            
+            // Reset Market Value
+            p.value = 100;
+            p.valueHistory = [{ week: 1, value: 100 }];
+        });
+
+        // 3. Sync UT cards with their base player's new base ratings
+        state.players.forEach(p => {
+            if (p.isUTCard && p.username) {
+                const basePlayer = state.players.find(bp => !bp.isUTCard && bp.username === p.username);
+                if (basePlayer) {
+                    p.ratings = JSON.parse(JSON.stringify(basePlayer.ratings));
+                }
+            }
+        });
+
+        saveDatabase();
+        renderAll();
+        alert("Tüm oyuncuların istatistikleri ve reytingleri sıfırlandı. Maç geçmişi temizlendi.");
+    }
+};
+
 window.recalculateAllHistoricalValues = function() {
     // 1. Reset all players to 100K and week 1, and reset base ratings if stored
     state.players.forEach(p => {
