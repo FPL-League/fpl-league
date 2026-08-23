@@ -1384,6 +1384,78 @@ window.releaseAllPlayersGlobal = function() {
     }
 };
 
+window.generateAutoFixture = function() {
+    if (!state.currentUser || state.currentUser.role !== 'admin') {
+        alert("Yetkiniz yok!");
+        return;
+    }
+
+    if (state.teams.length < 2) {
+        alert("Fikstür oluşturmak için en az 2 takım gereklidir.");
+        return;
+    }
+
+    if (state.matches.length > 0) {
+        if (!confirm("DİKKAT: Yeni fikstür oluşturduğunuzda mevcut tüm fikstür ve oynanmış maçlar (haftalar) SİLİNECEK. Devam etmek istiyor musunuz?")) {
+            return;
+        }
+    }
+
+    state.matches = [];
+    state.currentWeek = 1;
+    
+    let teams = state.teams.map(t => t.id);
+    if (teams.length % 2 !== 0) {
+        teams.push("BYE");
+    }
+    
+    const numDays = teams.length - 1;
+    const halfSize = teams.length / 2;
+    
+    // First half season
+    for (let day = 0; day < numDays; day++) {
+        for (let idx = 0; idx < halfSize; idx++) {
+            let team1 = teams[idx];
+            let team2 = teams[teams.length - 1 - idx];
+            
+            if (team1 !== "BYE" && team2 !== "BYE") {
+                state.matches.push({
+                    id: "m_" + Date.now() + "_" + day + "_" + idx,
+                    week: day + 1,
+                    homeTeam: team1,
+                    awayTeam: team2,
+                    homeScore: null,
+                    awayScore: null,
+                    played: false,
+                    statLogs: []
+                });
+            }
+        }
+        teams.splice(1, 0, teams.pop());
+    }
+
+    // Double round robin (Second half)
+    const secondHalfMatches = [];
+    state.matches.forEach(m => {
+        secondHalfMatches.push({
+            id: m.id + "_rev",
+            week: m.week + numDays,
+            homeTeam: m.awayTeam,
+            awayTeam: m.homeTeam,
+            homeScore: null,
+            awayScore: null,
+            played: false,
+            statLogs: []
+        });
+    });
+    
+    state.matches = state.matches.concat(secondHalfMatches);
+
+    saveDatabase();
+    renderAll();
+    alert(`Otomatik fikstür (Çift Devre) başarıyla oluşturuldu. Toplam ${numDays * 2} haftalık maç programı hazır.`);
+};
+
 window.resetAllRatingsGlobal = function() {
     if (!state.currentUser || state.currentUser.role !== 'admin') {
         alert("Yetkiniz yok!");

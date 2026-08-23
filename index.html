@@ -783,8 +783,9 @@
 
                             <!-- Create Match Fixture -->
                             <div class="card admin-card">
-                                <div class="card-header">
-                                    <h4><i class="fa-solid fa-calendar-plus"></i> Yeni Maç Ekle (Fikstür)</h4>
+                                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                                    <h4 style="margin: 0;"><i class="fa-solid fa-calendar-plus"></i> Yeni Maç Ekle (Fikstür)</h4>
+                                    <button type="button" class="btn btn-warning" onclick="generateAutoFixture()" style="color: black;">Otomatik Fikstür Oluştur</button>
                                 </div>
                                 <form id="admin-add-match-form">
                                     <div class="form-group">
@@ -1173,6 +1174,6 @@
 
     <!-- NOTIFICATION TOAST -->
     <div id="notification-toast" class="toast hidden"></div>
-    <script src="app.js?v=23"></script>
+    <script src="app.js?v=24"></script>
 </body>
 </html>
