@@ -1434,26 +1434,9 @@ window.generateAutoFixture = function() {
         teams.splice(1, 0, teams.pop());
     }
 
-    // Double round robin (Second half)
-    const secondHalfMatches = [];
-    state.matches.forEach(m => {
-        secondHalfMatches.push({
-            id: m.id + "_rev",
-            week: m.week + numDays,
-            homeTeam: m.awayTeam,
-            awayTeam: m.homeTeam,
-            homeScore: null,
-            awayScore: null,
-            played: false,
-            statLogs: []
-        });
-    });
-    
-    state.matches = state.matches.concat(secondHalfMatches);
-
     saveDatabase();
     renderAll();
-    alert(`Otomatik fikstür (Çift Devre) başarıyla oluşturuldu. Toplam ${numDays * 2} haftalık maç programı hazır.`);
+    alert(`Otomatik fikstür (Tek Devre) başarıyla oluşturuldu. Toplam ${numDays} haftalık maç programı hazır.`);
 };
 
 window.resetAllRatingsGlobal = function() {
