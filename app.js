@@ -691,9 +691,9 @@ function renderAll() {
     renderFixtures();
     renderPlayers();
     renderStatsPage();
-    renderDraft();
+    try { renderDraft(); } catch(e) { /* Draft section removed */ }
+    try { renderMarket(); } catch(e) { /* Market section removed */ }
     renderAdminPanel();
-    renderMarket();
     renderChat();
     
     // Toggle Admin sidebar visibility
