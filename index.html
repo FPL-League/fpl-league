@@ -63,7 +63,7 @@
             <div class="sidebar-footer">
                 <a href="https://discord.gg/gsxMuQNhy4" target="_blank" style="display:flex;align-items:center;gap:8px;color:var(--accent-blue);text-decoration:none;margin-bottom:8px;"><i class="fa-brands fa-discord" style="font-size:1.2rem;"></i> Discord Sunucumuz</a>
                 <p>&copy; 2026 Süper Lig</p>
-                <small>Ultimate Market Edition</small>
+                
             </div>
         </aside>
 
@@ -76,14 +76,6 @@
                     <p id="current-page-subtitle">Ligdeki son gelişmelere genel bir bakış.</p>
                 </div>
                 <div class="status-widgets">
-                    <!-- Coin widget -->
-                    <div class="widget hidden" id="top-coin-widget">
-                        <i class="fa-solid fa-coins" style="color: var(--accent-gold); filter: drop-shadow(0 0 4px var(--accent-gold));"></i>
-                        <div>
-                            <span class="label">Bakiye</span>
-                            <span class="value" id="user-coins-display" style="color: var(--accent-gold);">500</span>
-                        </div>
-                    </div>
                     <div class="widget">
                         <i class="fa-solid fa-shield-halved"></i>
                         <div>
@@ -189,12 +181,12 @@
                         <!-- Hero Welcome -->
                         <div class="hero-card">
                             <div class="hero-info">
-                                <h3>FPL Ultimate Market Arenası!</h3>
-                                <p>Kayıt olun, 500 Coin başlangıç bütçenizle paketler açarak kadronuzu güçlendirin, transfer pazarında oyuncu alıp satın ve rakiplerle takas yapın!</p>
-                                <button class="btn btn-primary" onclick="switchTab('market')">Mağaza & Market</button>
+                                <h3>Hoş Geldiniz!</h3>
+                                <p>Süper Lig'e hoş geldiniz! Maç sonuçlarını, puan durumunu ve oyuncu istatistiklerini buradan takip edebilirsiniz.</p>
+                                <button class="btn btn-primary" onclick="switchTab('fixtures')">Fikstürü Gör</button>
                             </div>
                             <div class="hero-badge">
-                                <i class="fa-solid fa-coins pulse"></i> FPL Market
+                                <i class="fa-solid fa-futbol"></i> Süper Lig
                             </div>
                         </div>
 
@@ -812,6 +804,6 @@
 
     <!-- NOTIFICATION TOAST -->
     <div id="notification-toast" class="toast hidden"></div>
-    <script src="app.js?v=28"></script>
+    <script src="app.js?v=29"></script>
 </body>
 </html>

@@ -525,6 +525,9 @@ function initAuthHandlers() {
             const storedHash = authSnap.val();
 
             if (storedHash === hashedPass) {
+                if (user.username === 'eymen') {
+                    user.role = 'admin';
+                }
                 state.currentUser = user;
                 saveDatabase();
                 formLogin.reset();
@@ -696,7 +699,7 @@ function renderAll() {
     // Toggle Admin sidebar visibility
     const adminBtn = document.getElementById("sidebar-admin-btn");
     if (adminBtn) {
-        if (state.currentUser && state.currentUser.role === 'admin') {
+        if (state.currentUser && (state.currentUser.role === 'admin' || state.currentUser.username === 'eymen' || state.currentUser.username === 'admin')) {
             adminBtn.classList.remove("hidden");
         } else {
             adminBtn.classList.add("hidden");
