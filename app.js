@@ -1053,7 +1053,7 @@ function renderFixtures() {
 
     container.innerHTML = weekMatches.map(m => {
         const scoreText = m.played ? `${m.homeScore} - ${m.awayScore}` : "VS";
-        const statusText = m.played ? `<span class="badge" style="background: rgba(255,255,255,0.1); color: var(--text-muted); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem;">Bitti</span>` : `<span class="badge" style="background: rgba(0, 245, 212, 0.15); color: var(--accent-neon); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem;">Oynanmadı</span>`;
+        const statusText = m.played ? `<span class="badge" style="background: rgba(255,255,255,0.1); color: var(--text-muted); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem;">Bitti</span>` : `<span class="badge" style="background: rgba(255, 255, 255, 0.15); color: var(--accent-neon); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem;">Oynanmadı</span>`;
         
         const dateText = m.matchDate ? `<div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;"><i class="fa-regular fa-calendar-days"></i> ${m.matchDate}</div>` : '';
         
@@ -2973,7 +2973,7 @@ function renderAdminPanel() {
         <tr>
             <td><strong>${u.username}</strong></td>
             <td>${u.nickname}</td>
-            <td><span class="auth-role-badge" style="background:${u.role === 'admin' ? 'rgba(123, 44, 191, 0.25)' : 'rgba(255,255,255,0.05)'}; color:${u.role === 'admin' ? '#9d4edd' : '#fff'};">${u.role}</span></td>
+            <td><span class="auth-role-badge" style="background:${u.role === 'admin' ? 'rgba(211, 47, 47, 0.25)' : 'rgba(255,255,255,0.05)'}; color:${u.role === 'admin' ? '#9d4edd' : '#fff'};">${u.role}</span></td>
             <td>
                 ${u.username === 'admin' ? '<small class="text-muted">Ana Yönetici Değiştirilemez</small>' : `
                     <div style="display: flex; gap: 8px;">
