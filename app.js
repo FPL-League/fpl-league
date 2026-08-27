@@ -684,41 +684,27 @@ window.logout = function() {
 
 // --- DYNAMIC RENDERING ---
 function renderAll() {
-    renderAuthStatusBar();
-    renderWidgets();
-    renderDashboard();
-    renderStandings();
-    renderFixtures();
-    renderPlayers();
-    renderStatsPage();
-    try { renderDraft(); } catch(e) { /* Draft section removed */ }
-    try { renderMarket(); } catch(e) { /* Market section removed */ }
-    renderAdminPanel();
-    renderChat();
-    
-    // Toggle Admin sidebar visibility
+    // Toggle Admin sidebar visibility FIRST (before any crash can block it)
     const adminBtn = document.getElementById("sidebar-admin-btn");
     if (adminBtn) {
-        if (state.currentUser && (state.currentUser.role === 'admin' || state.currentUser.username === 'eymen' || state.currentUser.username === 'admin')) {
+        if (state.currentUser && state.currentUser.role === 'admin') {
             adminBtn.classList.remove("hidden");
         } else {
             adminBtn.classList.add("hidden");
         }
     }
 
-    // Toggle Coin Display
-    const coinWidget = document.getElementById("top-coin-widget");
-    if (coinWidget) {
-        if (state.currentUser) {
-            coinWidget.classList.remove("hidden");
-            const coinDisplay = document.getElementById("user-coins-display");
-            if (coinDisplay) {
-                coinDisplay.innerText = state.currentUser.username === 'admin' ? "Sonsuz" : state.currentUser.coins;
-            }
-        } else {
-            coinWidget.classList.add("hidden");
-        }
-    }
+    try { renderAuthStatusBar(); } catch(e) { console.warn('renderAuthStatusBar', e); }
+    try { renderWidgets(); } catch(e) { console.warn('renderWidgets', e); }
+    try { renderDashboard(); } catch(e) { console.warn('renderDashboard', e); }
+    try { renderStandings(); } catch(e) { console.warn('renderStandings', e); }
+    try { renderFixtures(); } catch(e) { console.warn('renderFixtures', e); }
+    try { renderPlayers(); } catch(e) { console.warn('renderPlayers', e); }
+    try { renderStatsPage(); } catch(e) { console.warn('renderStatsPage', e); }
+    try { renderDraft(); } catch(e) { /* Draft section removed */ }
+    try { renderMarket(); } catch(e) { /* Market section removed */ }
+    try { renderAdminPanel(); } catch(e) { console.warn('renderAdminPanel', e); }
+    try { renderChat(); } catch(e) { console.warn('renderChat', e); }
 }
 
 function renderAuthStatusBar() {
