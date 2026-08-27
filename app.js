@@ -1055,6 +1055,8 @@ function renderFixtures() {
         const scoreText = m.played ? `${m.homeScore} - ${m.awayScore}` : "VS";
         const statusText = m.played ? `<span class="badge" style="background: rgba(255,255,255,0.1); color: var(--text-muted); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem;">Bitti</span>` : `<span class="badge" style="background: rgba(0, 245, 212, 0.15); color: var(--accent-neon); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem;">Oynanmadı</span>`;
         
+        const dateText = m.matchDate ? `<div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;"><i class="fa-regular fa-calendar-days"></i> ${m.matchDate}</div>` : '';
+        
         return `
             <div class="card" style="margin-bottom: 0;">
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
@@ -1071,7 +1073,10 @@ function renderFixtures() {
                             <span>${getTeamName(m.awayTeam)}</span>
                         </div>
                     </div>
-                    <div>${statusText}</div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                        <div>${statusText}</div>
+                        ${dateText}
+                    </div>
                 </div>
             </div>
         `;
@@ -3035,7 +3040,7 @@ function renderAdminFixturesList() {
     if (!container) return;
 
     if (state.matches.length === 0) {
-        container.innerHTML = `<tr><td colspan="5" class="text-muted text-center" style="padding:1.5rem 0;">Fikstürde henüz maç bulunmuyor.</td></tr>`;
+        container.innerHTML = `<tr><td colspan="6" class="text-muted text-center" style="padding:1.5rem 0;">Fikstürde henüz maç bulunmuyor.</td></tr>`;
         return;
     }
 
@@ -3045,10 +3050,12 @@ function renderAdminFixturesList() {
         const homeName = getTeamName(m.homeTeam);
         const awayName = getTeamName(m.awayTeam);
         const scoreText = m.played ? `${m.homeScore} - ${m.awayScore}` : "Oynanmadı";
+        const dateText = m.matchDate || "-";
         
         return `
             <tr>
                 <td><strong>${m.week}. Hafta</strong></td>
+                <td><span style="font-size:0.85rem; color:var(--text-muted);">${dateText}</span></td>
                 <td>${homeName}</td>
                 <td>${awayName}</td>
                 <td><span class="auth-role-badge" style="background: rgba(255,255,255,0.05); color: var(--accent-neon);">${scoreText}</span></td>
@@ -3128,6 +3135,12 @@ window.editMatchFixture = function(matchId) {
     if (isNaN(newWeek) || newWeek < 1) {
         alert("Geçersiz hafta numarası!");
         return;
+    }
+
+    // Prompt for Match Date
+    const newDateStr = prompt(`Maç Tarihini Girin (Şu anki: ${match.matchDate || 'Yok'}):`, match.matchDate || "");
+    if (newDateStr !== null) {
+        match.matchDate = newDateStr.trim();
     }
 
     // Prompt for Home Score (if already played)
@@ -3402,6 +3415,7 @@ function initEventHandlers() {
     document.getElementById("admin-add-match-form").onsubmit = (e) => {
         e.preventDefault();
         const week = parseInt(document.getElementById("fixture-week").value);
+        const matchDate = document.getElementById("fixture-date").value.trim();
         const home = document.getElementById("fixture-home").value;
         const away = document.getElementById("fixture-away").value;
 
@@ -3413,6 +3427,7 @@ function initEventHandlers() {
         const newMatch = {
             id: "m_" + Date.now(),
             week,
+            matchDate,
             homeTeam: home,
             awayTeam: away,
             homeScore: null,
@@ -3850,7 +3865,8 @@ function renderChat() {
         const isMe = m.sender === myUsername;
         const canDelete = isMe || isAdmin;
         const cls = isMe ? "sent" : "received";
-        const timeStr = new Date(m.time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        const dateObj = new Date(m.time);
+        const timeStr = dateObj.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' }) + ' ' + dateObj.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
         
         return `
             <div class="chat-msg ${cls}">
