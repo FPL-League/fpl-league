@@ -44,7 +44,7 @@ body {
 /* Sidebar Styling */
 .sidebar {
     width: var(--sidebar-width);
-    background: rgba(10, 12, 26, 0.85);
+    background: linear-gradient(180deg, rgba(30, 5, 5, 0.9) 0%, rgba(10, 10, 10, 0.95) 100%);
     backdrop-filter: blur(20px);
     border-right: 1px solid var(--border-color);
     display: flex;
