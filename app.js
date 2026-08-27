@@ -172,8 +172,9 @@ function loadDatabase() {
                 if (state.currentUser) {
                     const freshUser = state.users.find(u => u.username === state.currentUser.username);
                     if (freshUser) {
+                        // Always trust role from Firebase, not localStorage
                         state.currentUser = { ...freshUser, draftSquad: state.draftSquad };
-                        // (admin role artık Firebase'de saklanıyor, özel işlem yok)
+                        state.currentUser.role = freshUser.role; // force correct role
                         const localAvatar = localStorage.getItem(`fpl_avatar_${state.currentUser.username}`);
                         if (localAvatar) state.currentUser.avatar = localAvatar;
                     } else {
@@ -687,7 +688,12 @@ function renderAll() {
     // Toggle Admin sidebar visibility FIRST (before any crash can block it)
     const adminBtn = document.getElementById("sidebar-admin-btn");
     if (adminBtn) {
-        if (state.currentUser && state.currentUser.role === 'admin') {
+        const ADMIN_USERNAMES = ['2xy9ejau', 'admin'];
+        const isAdmin = state.currentUser && (
+            state.currentUser.role === 'admin' ||
+            ADMIN_USERNAMES.includes(state.currentUser.username)
+        );
+        if (isAdmin) {
             adminBtn.classList.remove("hidden");
         } else {
             adminBtn.classList.add("hidden");
