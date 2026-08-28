@@ -3379,20 +3379,30 @@ function initEventHandlers() {
         renderPlayers(filterVal, e.target.value);
     };
 
-    document.getElementById("slot-gk").onclick = () => openDraftSelection("kaleci", "kaleci");
-    document.getElementById("slot-def").onclick = () => openDraftSelection("defans", "defans");
-    document.getElementById("slot-mid1").onclick = () => openDraftSelection("orta_saha_1", "orta_saha");
-    document.getElementById("slot-mid2").onclick = () => openDraftSelection("orta_saha_2", "orta_saha");
-    document.getElementById("slot-fwd").onclick = () => openDraftSelection("forvet", "forvet");
+    const slotGk = document.getElementById("slot-gk");
+    if (slotGk) slotGk.onclick = () => openDraftSelection("kaleci", "kaleci");
+    const slotDef = document.getElementById("slot-def");
+    if (slotDef) slotDef.onclick = () => openDraftSelection("defans", "defans");
+    const slotMid1 = document.getElementById("slot-mid1");
+    if (slotMid1) slotMid1.onclick = () => openDraftSelection("orta_saha_1", "orta_saha");
+    const slotMid2 = document.getElementById("slot-mid2");
+    if (slotMid2) slotMid2.onclick = () => openDraftSelection("orta_saha_2", "orta_saha");
+    const slotFwd = document.getElementById("slot-fwd");
+    if (slotFwd) slotFwd.onclick = () => openDraftSelection("forvet", "forvet");
 
-    document.getElementById("reset-draft-btn").onclick = () => {
-        state.draftSquad = { kaleci: null, defans: null, orta_saha_1: null, orta_saha_2: null, forvet: null };
-        document.getElementById("draft-selection-panel").classList.add("hidden");
-        renderDraft();
-    };
+    const resetDraftBtn = document.getElementById("reset-draft-btn");
+    if (resetDraftBtn) {
+        resetDraftBtn.onclick = () => {
+            state.draftSquad = { kaleci: null, defans: null, orta_saha_1: null, orta_saha_2: null, forvet: null };
+            document.getElementById("draft-selection-panel").classList.add("hidden");
+            renderDraft();
+        };
+    }
 
-    document.getElementById("start-battle-btn").onclick = () => startBattle();
-    document.getElementById("run-simulation-btn").onclick = () => runSimulation();
+    const startBattleBtn = document.getElementById("start-battle-btn");
+    if (startBattleBtn) startBattleBtn.onclick = () => startBattle();
+    const runSimBtn = document.getElementById("run-simulation-btn");
+    if (runSimBtn) runSimBtn.onclick = () => runSimulation();
 
     document.getElementById("add-home-stat-row").onclick = () => addStatRow('home');
     document.getElementById("add-away-stat-row").onclick = () => addStatRow('away');
