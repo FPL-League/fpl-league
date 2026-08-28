@@ -2610,12 +2610,15 @@ function initMarketHandlers() {
 
             const targetTabId = btn.getAttribute("data-tab");
             document.querySelectorAll(".market-sub-section").forEach(sec => sec.classList.add("hidden"));
-            document.getElementById(targetTabId).classList.remove("hidden");
+            const targetEl = document.getElementById(targetTabId);
+            if (targetEl) targetEl.classList.remove("hidden");
         };
     });
 
-    // Form: Sell Player
-    document.getElementById("market-sell-form").onsubmit = (e) => {
+    // Form: Sell Player (Market section may have been removed)
+    const marketSellForm = document.getElementById("market-sell-form");
+    if (marketSellForm) {
+    marketSellForm.onsubmit = (e) => {
         e.preventDefault();
         if (!state.currentUser) return;
         
@@ -2652,9 +2655,12 @@ function initMarketHandlers() {
         renderAll();
         alert("Oyuncu satış pazarında listelendi.");
     };
+    } // end if (marketSellForm)
 
     // Form: Trade Offer Send
-    document.getElementById("market-trade-form").onsubmit = (e) => {
+    const marketTradeForm = document.getElementById("market-trade-form");
+    if (marketTradeForm) {
+    marketTradeForm.onsubmit = (e) => {
         e.preventDefault();
         if (!state.currentUser) return;
 
@@ -2679,8 +2685,9 @@ function initMarketHandlers() {
         saveDatabase();
         renderAll();
         alert("Takas teklifiniz karşı tarafa iletildi!");
-        document.getElementById("market-trade-form").reset();
+        marketTradeForm.reset();
     };
+    } // end if (marketTradeForm)
 }
 
 function renderMarket() {
