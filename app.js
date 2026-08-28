@@ -84,6 +84,10 @@ const PACK_NAMES_FIRST = ["Gökhan", "Arda", "Can", "Kerem", "Emre", "Barış", 
 const PACK_NAMES_LAST = ["Kaya", "Çelik", "Yılmaz", "Demir", "Öztürk", "Şahin", "Yıldız", "Aydın", "Özdemir", "Arslan", "Kılıç", "Doğan", "Bulut", "Güneş", "Erdoğan", "Aslan", "Köse"];
 
 // --- INIT APP ---
+// Flag to suppress Firebase listener renderAll() when WE triggered the save
+let _suppressFirebaseRender = false;
+let _suppressRenderTimer = null;
+
 window.onload = function() {
     loadDatabase();
     initNavigation();
@@ -307,7 +311,10 @@ function loadDatabase() {
                 state.currentWeek = 1;
             }
 
-            renderAll();
+            // Only re-render if update came from ANOTHER device (not triggered by our own saveDatabase)
+            if (!_suppressFirebaseRender) {
+                renderAll();
+            }
         });
     }
 }
@@ -362,6 +369,11 @@ function saveDatabase() {
             }
         });
         
+        // Suppress the Firebase listener from re-rendering (we triggered this save ourselves)
+        _suppressFirebaseRender = true;
+        if (_suppressRenderTimer) clearTimeout(_suppressRenderTimer);
+        _suppressRenderTimer = setTimeout(() => { _suppressFirebaseRender = false; }, 3000);
+
         // Write full state including avatars to Firebase for cross-device sync
         db.ref('fpl_state').set({
             users: state.users,
