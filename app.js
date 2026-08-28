@@ -669,7 +669,7 @@ function initAuthHandlers() {
         submitBtn.innerText = "Kayıt Ol ve Kartını Oluştur";
         submitBtn.disabled = false;
         
-        alert("Kayıt başarılı! 5 adet başlangıç oyuncusu ve 250 FPL Coin hesabınıza eklendi. Hesabınız yeni açıldığı için ilk 24 saat boyunca Ultimate Team modları (Draft & Market) kilitli kalacaktır.");
+        alert("Kayıt başarılı! Hesabınız yöneticiler tarafından onaylandığında tam erişim sağlayabilirsiniz. Şimdi giriş yapabilirsiniz.");
         renderAll();
         switchTab("dashboard");
     };
@@ -716,14 +716,13 @@ function renderAll() {
 function renderAuthStatusBar() {
     const bar = document.getElementById("auth-status-bar");
     if (state.currentUser) {
-        const coinText = state.currentUser.username === 'admin' ? "Sonsuz" : state.currentUser.coins;
         const avatarImg = state.currentUser.avatar && state.currentUser.avatar.trim().length > 5 ? `<img src="${state.currentUser.avatar}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border: 2px solid var(--accent-neon);" onerror="this.outerHTML='<i class=\\'fa-solid fa-user-circle\\'></i>'">` : `<i class="fa-solid fa-user-circle"></i>`;
         
         bar.innerHTML = `
             <div class="auth-user-card" style="cursor: pointer;" onclick="openProfileEditModal()" title="Profili Düzenle">
                 ${avatarImg}
                 <div>
-                    <span class="auth-username">${state.currentUser.nickname} (💰 ${coinText})</span>
+                    <span class="auth-username">${state.currentUser.nickname}</span>
                     <span class="auth-role-badge">${state.currentUser.role}</span>
                 </div>
                 <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); logout()">Çıkış Yap</button>
@@ -2236,10 +2235,7 @@ function runSimulation() {
                 coinsEarned = 20;
             }
 
-            // Award coins (admin has infinite coins, so do not add/modify)
-            if (state.currentUser.username !== 'admin') {
-                state.currentUser.coins += coinsEarned;
-            }
+            // Removed coins logic here
             saveDatabase();
             renderAll();
 
@@ -2253,11 +2249,7 @@ function runSimulation() {
                 titleEl.style.color = resultTitleColor;
                 titleEl.style.textShadow = `0 0 20px ${resultTitleColor}`;
                 
-                if (state.currentUser.username === 'admin') {
-                    coinsEl.innerText = `💰 Sınırsız Bakiye Aktif`;
-                } else {
-                    coinsEl.innerText = `💰 +${coinsEarned} FPL Coins`;
-                }
+                coinsEl.innerText = "";
                 
                 overlay.classList.remove("hidden");
                 document.getElementById("battle-arena-panel").classList.add("hidden");
@@ -3720,7 +3712,7 @@ window.switchTab = function(targetSectionId) {
             break;
         case "betting":
             titleEl.innerText = "Bahis Merkezi";
-            subEl.innerText = "Bahise açık maçlara coin yatırın, doğru tahmin = 2x kazanç!";
+            subEl.innerText = "Admin tarafından bahise açılan maçlara tahminde bulunun.";
             renderBetting();
             break;
         case "guesswho":
@@ -4173,20 +4165,10 @@ function renderBetting() {
                 
                 betDetailHTML = `
                 <div style="margin-top:0.8rem;padding:0.8rem;border-radius:10px;border:2px solid ${isWin ? 'var(--accent-neon)' : '#ff4d6d'};background:${isWin ? 'rgba(0,255,136,0.08)' : 'rgba(255,77,109,0.08)'};">
-                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
-                        <div>
-                            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;">Bahsiniz</div>
-                            <div style="font-weight:bold;color:${isWin ? 'var(--accent-neon)' : '#ff4d6d'};">${isWin ? '✅' : '❌'} ${betPredText}</div>
-                        </div>
-                        <div style="text-align:right;">
-                            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;">Yatırılan</div>
-                            <div style="font-weight:bold;color:var(--accent-gold);">${myBet.amount} Coin</div>
-                        </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;">Tahmininiz</div>
+                        <div style="font-weight:bold;color:${isWin ? 'var(--accent-neon)' : '#ff4d6d'};font-size:1.1rem;margin-top:4px;">${isWin ? '✅' : '❌'} ${betPredText}</div>
                     </div>
-                    ${isWin ? (myBet.collected ? 
-                        `<div style="text-align:center;margin-top:0.6rem;"><span style="color:var(--accent-neon);font-weight:bold;"><i class="fa-solid fa-circle-check"></i> ${myBet.amount * 2} Coin alındı!</span></div>` :
-                        `<div style="text-align:center;margin-top:0.6rem;"><button class="btn btn-sm" onclick="collectBet('${myBet.id}')" style="background:linear-gradient(135deg,#00ff88,#00cc6a);color:black;font-weight:bold;padding:8px 20px;font-size:0.95rem;"><i class="fa-solid fa-hand-holding-dollar"></i> Parayı Al (${myBet.amount * 2} Coin)</button></div>`) 
-                    : `<div style="text-align:center;margin-top:0.5rem;color:#ff4d6d;font-size:0.85rem;">Bahsinizi kaybettiniz</div>`}
                 </div>`;
             }
             
@@ -4199,11 +4181,11 @@ function renderBetting() {
             statusHTML = `<div style="text-align:center;padding:0.8rem;background:rgba(255,165,0,0.15);border-radius:8px;margin-top:0.5rem;border:1px solid rgba(255,165,0,0.3);">
                 <i class="fa-solid fa-futbol fa-spin" style="color:orange;margin-right:6px;"></i>
                 <strong style="color:orange;">Maç Oynanıyor!</strong>
-                ${myBet ? '<br><span style="color:#9d4edd;font-size:0.85rem;">Bahsiniz: ' + (myBet.prediction === 'home' ? homeName : myBet.prediction === 'away' ? awayName : 'Beraberlik') + ' - ' + myBet.amount + ' Coin</span>' : '<br><span style="color:var(--text-muted);font-size:0.85rem;">Bahis süresi kapandı</span>'}
+                ${myBet ? '<br><span style="color:#9d4edd;font-size:0.85rem;">Tahmininiz: ' + (myBet.prediction === 'home' ? homeName : myBet.prediction === 'away' ? awayName : 'Beraberlik') + '</span>' : '<br><span style="color:var(--text-muted);font-size:0.85rem;">Tahmin süresi kapandı</span>'}
             </div>`;
         } else if (myBet) {
             statusHTML = `<div style="text-align:center;padding:0.5rem;background:rgba(123,44,191,0.15);border-radius:8px;margin-top:0.5rem;">
-                <span style="color:#9d4edd;">Bahsiniz: ${myBet.prediction === 'home' ? homeName : myBet.prediction === 'away' ? awayName : 'Beraberlik'} - ${myBet.amount} Coin</span>
+                <span style="color:#9d4edd;">Tahmininiz: ${myBet.prediction === 'home' ? homeName : myBet.prediction === 'away' ? awayName : 'Beraberlik'}</span>
             </div>`;
         } else {
             statusHTML = `
@@ -4213,8 +4195,7 @@ function renderBetting() {
                     <option value="draw">Beraberlik</option>
                     <option value="away">${awayName} Kazanır</option>
                 </select>
-                <input type="number" id="bet-amount-${m.id}" placeholder="Coin" min="10" max="500" value="50" style="width:80px;padding:0.5rem;background:var(--surface-light);color:white;border:1px solid var(--border-color);border-radius:8px;">
-                <button class="btn btn-primary btn-sm" onclick="placeBet('${m.id}')"><i class="fa-solid fa-coins"></i> Bahis Yap</button>
+                <button class="btn btn-primary btn-sm" onclick="placeBet('${m.id}')"><i class="fa-solid fa-check"></i> Tahmin Yap</button>
             </div>`;
         }
         
@@ -4251,72 +4232,36 @@ window.startMatch = function(matchId) {
     alert("Maç başlatıldı! Bahisler kilitlendi. ⚽");
 };
 
-window.collectBet = function(betId) {
-    if (!state.currentUser) return;
-    const bet = state.bets.find(b => b.id === betId);
-    if (!bet || bet.collected) { alert("Bu bahis zaten tahsil edildi!"); return; }
-    if (bet.username !== state.currentUser.username) { alert("Bu bahis size ait değil!"); return; }
-    
-    // Verify the bet actually won
-    const match = state.matches.find(m => m.id === bet.matchId);
-    if (!match || !match.played) { alert("Maç henüz bitmedi!"); return; }
-    
-    const result = match.homeScore > match.awayScore ? 'home' : (match.homeScore < match.awayScore ? 'away' : 'draw');
-    if (bet.prediction !== result) { alert("Bu bahisi kaybettiniz, para alınamaz!"); return; }
-    
-    // Give 2x coins
-    const user = state.users.find(u => u.username === state.currentUser.username);
-    if (user) {
-        user.coins = (user.coins || 0) + (bet.amount * 2);
-        state.currentUser.coins = user.coins;
-    }
-    bet.collected = true;
-    
-    saveDatabase();
-    renderBetting();
-    renderAll();
-    alert("🎉 Tebrikler! " + (bet.amount * 2) + " Coin hesabınıza eklendi!");
-};
 window.placeBet = function(matchId) {
-    if (!state.currentUser) { alert("Bahis yapmak için giriş yapmalısınız!"); return; }
+    if (!state.currentUser) { alert("Tahmin yapmak için giriş yapmalısınız!"); return; }
     
     // Check if match started
     const matchCheck = state.matches.find(m => m.id === matchId);
-    if (matchCheck && matchCheck.matchStarted) { alert("Maç başladı! Artık bahis yapılamaz."); return; }
+    if (matchCheck && matchCheck.matchStarted) { alert("Maç başladı! Artık tahmin yapılamaz."); return; }
     
     const predEl = document.getElementById("bet-pred-" + matchId);
-    const amountEl = document.getElementById("bet-amount-" + matchId);
-    if (!predEl || !amountEl) return;
+    if (!predEl) return;
     
     const prediction = predEl.value;
-    const amount = parseInt(amountEl.value);
-    
-    if (isNaN(amount) || amount < 10 || amount > 500) { alert("Bahis miktarı 10-500 arasında olmalıdır!"); return; }
-    
-    const user = state.users.find(u => u.username === state.currentUser.username);
-    if (!user || (user.coins || 0) < amount) { alert("Yeterli coin'iniz yok!"); return; }
     
     // Already bet?
     if (state.bets.find(b => b.matchId === matchId && b.username === state.currentUser.username)) {
-        alert("Bu maça zaten bahis yaptınız!"); return;
+        alert("Bu maça zaten tahmin yaptınız!"); return;
     }
-    
-    user.coins -= amount;
-    state.currentUser.coins = user.coins;
     
     state.bets.push({
         id: "bet_" + Date.now(),
         matchId: matchId,
         username: state.currentUser.username,
         prediction: prediction,
-        amount: amount,
+        amount: 0,
         resolved: false
     });
     
     saveDatabase();
     renderBetting();
     renderAll();
-    alert("Bahis yapıldı! İyi şanslar! 🎲");
+    alert("Tahmin yapıldı! İyi şanslar! 🎲");
 };
 
 // Resolve bets when a match is played
@@ -4328,15 +4273,6 @@ function resolveBetsForMatch(matchId) {
     
     state.bets.filter(b => b.matchId === matchId && !b.resolved).forEach(b => {
         b.resolved = true;
-        if (b.prediction === result) {
-            const user = state.users.find(u => u.username === b.username);
-            if (user) {
-                user.coins = (user.coins || 0) + (b.amount * 2);
-                if (state.currentUser && state.currentUser.username === b.username) {
-                    state.currentUser.coins = user.coins;
-                }
-            }
-        }
     });
     saveDatabase();
 }
