@@ -3707,7 +3707,7 @@ window.switchTab = function(targetSectionId) {
             break;
         case "players":
             titleEl.innerText = "Lisanslı Oyuncu Kartları";
-            subEl.innerText = "FPL'de kayıtlı olan tüm kullanıcıların reyting kartları.";
+            subEl.innerText = "Süper Lig'de kayıtlı olan tüm oyuncuların reyting kartları.";
             break;
         case "stats":
             titleEl.innerText = "Detaylı İstatistikler";
