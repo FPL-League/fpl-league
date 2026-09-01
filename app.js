@@ -2935,6 +2935,20 @@ function initAdminSubTabs() {
     });
 }
 
+function renderAdminPlayerEditDropdown(searchStr = "") {
+    const editPlayerSelect = document.getElementById("edit-select-player");
+    if (!editPlayerSelect) return;
+    const mockUsernames = ['ahmet10', 'mehmet8', 'can7', 'berk1', 'oguz9'];
+    let nonUTPlayers = state.players.filter(p => !p.isUTCard && !p.id.includes('_pack_') && !p.id.includes('_starter_') && !mockUsernames.includes(p.username));
+    
+    if (searchStr.trim() !== "") {
+        const lowerStr = searchStr.toLowerCase().trim();
+        nonUTPlayers = nonUTPlayers.filter(p => p.name.toLowerCase().includes(lowerStr));
+    }
+    
+    editPlayerSelect.innerHTML = `<option value="">Oyuncu Seçin</option>` + nonUTPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join("");
+}
+
 function renderAdminPanel() {
     initAdminSubTabs();
 
@@ -2964,10 +2978,7 @@ function renderAdminPanel() {
 
 
     // 3. Fill Player Edit Selector
-    const editPlayerSelect = document.getElementById("edit-select-player");
-    const mockUsernames = ['ahmet10', 'mehmet8', 'can7', 'berk1', 'oguz9'];
-    const nonUTPlayers = state.players.filter(p => !p.isUTCard && !p.id.includes('_pack_') && !p.id.includes('_starter_') && !mockUsernames.includes(p.username));
-    editPlayerSelect.innerHTML = `<option value="">Oyuncu Seçin</option>` + nonUTPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join("");
+    renderAdminPlayerEditDropdown();
 
     // 4. Fill Team list inside Player Edit
     const editPlayerTeam = document.getElementById("edit-player-team");
@@ -3427,6 +3438,10 @@ function initEventHandlers() {
     document.getElementById("add-away-stat-row").onclick = () => addStatRow('away');
 
     document.getElementById("admin-select-match").onchange = () => updateAdminMatchLabels();
+    
+    document.getElementById("admin-player-search").oninput = (e) => {
+        renderAdminPlayerEditDropdown(e.target.value);
+    };
 
     document.getElementById("admin-add-match-form").onsubmit = (e) => {
         e.preventDefault();
