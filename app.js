@@ -36,23 +36,31 @@ function showGoalCardAnimation(player) {
 // --- SEED ADMIN CREATION ---
 // Admin hesabı güvenlik nedeniyle kaldırıldı. Admin yetkisi Firebase'de manuel olarak verilir.
 
-// --- FIREBASE CONFIGURATION ---
+// --- FIREBASE CONFIGURATION (DOMAIN LOCKED) ---
+const _0x1a2b = ["pso-super-lig.github.io", "localhost", "127.0.0.1", ""];
+const _isAllowed = _0x1a2b.includes(window.location.hostname);
+
+if (!_isAllowed) {
+    console.error("Yetkisiz alan adı! Sistem durduruldu.");
+    document.write("<h1>Erişim Engellendi (Hırsızlık Koruması Aktif)</h1>");
+}
+
 const firebaseConfig = {
-    apiKey: "AIzaSyDkT0xcXXf5S_bD-Dz4LFjM-_kU5qNenuA",
+    apiKey: _isAllowed ? "AIzaSyDkT0xcXXf5S_bD-Dz4LFjM-_kU5qNenuA" : "FAKE_API_KEY",
     authDomain: "fpl-league-23188.firebaseapp.com",
     projectId: "fpl-league-23188",
     storageBucket: "fpl-league-23188.firebasestorage.app",
     messagingSenderId: "992402043869",
     appId: "1:992402043869:web:5b19e1d0e3b99b8ff7bc34",
     measurementId: "G-XGMGQ5CG64",
-    databaseURL: "https://fpl-league-23188-default-rtdb.firebaseio.com" 
+    databaseURL: _isAllowed ? "https://fpl-league-23188-default-rtdb.firebaseio.com" : "https://fake-db-error.firebaseio.com"
 };
 
 // If firebase is defined, initialize it
-if (typeof firebase !== 'undefined') {
+if (typeof firebase !== 'undefined' && _isAllowed) {
     firebase.initializeApp(firebaseConfig);
 }
-const db = typeof firebase !== 'undefined' ? firebase.database() : null;
+const db = (typeof firebase !== 'undefined' && _isAllowed) ? firebase.database() : null;
 
 // --- APP STATE CONTAINER ---
 let state = {
@@ -700,11 +708,7 @@ function renderAll() {
     // Toggle Admin sidebar visibility FIRST (before any crash can block it)
     const adminBtn = document.getElementById("sidebar-admin-btn");
     if (adminBtn) {
-        const ADMIN_USERNAMES = ['2xy9ejau', 'admin'];
-        const isAdmin = state.currentUser && (
-            state.currentUser.role === 'admin' ||
-            ADMIN_USERNAMES.includes(state.currentUser.username)
-        );
+        const isAdmin = state.currentUser && state.currentUser.role === 'admin';
         if (isAdmin) {
             adminBtn.classList.remove("hidden");
         } else {
