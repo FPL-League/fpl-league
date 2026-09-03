@@ -621,9 +621,7 @@ function initAuthHandlers() {
             const storedHash = authSnap.val();
 
             if (storedHash === hashedPass) {
-                if (user.username === 'eymen') {
-                    user.role = 'admin';
-                }
+                // Hardcoded admin overrides removed for security
                 state.currentUser = user;
                 saveDatabase();
                 formLogin.reset();
