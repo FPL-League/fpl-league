@@ -96,6 +96,81 @@ const PACK_NAMES_LAST = ["Kaya", "Çelik", "Yılmaz", "Demir", "Öztürk", "Şah
 let _suppressFirebaseRender = false;
 let _suppressRenderTimer = null;
 
+// ============================================================
+// SECURITY SYSTEM - HACKED BY NO ONE
+// ============================================================
+
+// 1. CONSOLE WARNING - Konsola kod yapıştırmaya çalışanlara uyarı
+(function() {
+    const _w = '%c⛔ DUR! ⛔';
+    const _s1 = 'font-size:48px;color:red;font-weight:bold;text-shadow:2px 2px 0 black;';
+    const _s2 = 'font-size:16px;color:white;background:red;padding:8px 16px;border-radius:4px;';
+    const _s3 = 'font-size:14px;color:orange;';
+    console.log(_w, _s1);
+    console.log('%cBu alan geliştiriciler içindir. Birisi size buraya kod yapıştırmanızı söylediyse bu bir DOLANDIRICILIK girişimidir ve hesabınıza erişim sağlamaya çalışıyordur.', _s2);
+    console.log('%cBu konsolu kapatın ve güvende kalın!', _s3);
+})();
+
+// 2. RIGHT CLICK + F12 + DevTools BLOCKER
+document.addEventListener('contextmenu', function(e) { e.preventDefault(); return false; });
+document.addEventListener('keydown', function(e) {
+    // F12
+    if (e.key === 'F12' || e.keyCode === 123) { e.preventDefault(); return false; }
+    // Ctrl+Shift+I (DevTools)
+    if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) { e.preventDefault(); return false; }
+    // Ctrl+Shift+J (Console)
+    if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) { e.preventDefault(); return false; }
+    // Ctrl+Shift+C (Element picker)
+    if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c' || e.keyCode === 67)) { e.preventDefault(); return false; }
+    // Ctrl+U (View source)
+    if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) { e.preventDefault(); return false; }
+});
+
+// 3. DEVTOOLS OPEN DETECTION - DevTools açıldığında uyarı
+(function() {
+    let _dtOpen = false;
+    const _threshold = 160;
+    setInterval(function() {
+        const wDiff = window.outerWidth - window.innerWidth > _threshold;
+        const hDiff = window.outerHeight - window.innerHeight > _threshold;
+        if (wDiff || hDiff) {
+            if (!_dtOpen) {
+                _dtOpen = true;
+                console.clear();
+                console.log('%c⛔ GELİŞTİRİCİ ARAÇLARI TESPİT EDİLDİ ⛔', 'font-size:32px;color:red;font-weight:bold;');
+                console.log('%cBu konsolu kapatın! Yetkisiz erişim loglanmaktadır.', 'font-size:16px;color:white;background:red;padding:8px;');
+            }
+        } else {
+            _dtOpen = false;
+        }
+    }, 1000);
+})();
+
+// 4. ADMIN ACTION LOGGER - Admin işlemlerini Firebase'e kaydet
+function logAdminAction(action, details) {
+    if (!db || !state.currentUser) return;
+    const logEntry = {
+        user: state.currentUser.username,
+        nickname: state.currentUser.nickname || '',
+        action: action,
+        details: details || '',
+        timestamp: Date.now(),
+        date: new Date().toLocaleString('tr-TR')
+    };
+    db.ref('fpl_admin_logs').push(logEntry);
+}
+
+// 5. ANTI-TAMPER - Kritik fonksiyonların değiştirilip değiştirilmediğini kontrol et
+(function() {
+    const _origSave = 'saveDatabase';
+    setInterval(function() {
+        if (typeof window[_origSave] !== 'function') {
+            document.body.innerHTML = '<h1 style="color:red;text-align:center;margin-top:200px;">⛔ Güvenlik İhlali Tespit Edildi ⛔</h1>';
+            if (db) db.ref('fpl_admin_logs').push({action: 'TAMPER_DETECTED', timestamp: Date.now(), date: new Date().toLocaleString('tr-TR')});
+        }
+    }, 5000);
+})();
+
 window.onload = function() {
     loadDatabase();
     initNavigation();
@@ -1392,7 +1467,7 @@ window.releaseAllPlayersGlobal = function() {
         if (changed > 0) {
             saveDatabase();
             renderAll();
-            alert(`Toplam ${changed} oyuncu serbest bırakıldı.`);
+            alert(`Toplam ${changed} oyuncu serbest bırakıldı.`); logAdminAction("RELEASE_ALL_PLAYERS", `${changed} oyuncu serbest bırakıldı`);
         } else {
             alert("Zaten tüm oyuncular serbest durumdaydı.");
         }
@@ -3511,7 +3586,7 @@ function initEventHandlers() {
         saveDatabase();
 
         document.getElementById("admin-add-team-form").reset();
-        alert("Yeni takım başarıyla oluşturuldu.");
+        alert("Yeni takım başarıyla oluşturuldu."); logAdminAction("CREATE_TEAM", "Takım oluşturuldu: " + name);
         renderAll();
     };
 
@@ -3562,7 +3637,7 @@ function initEventHandlers() {
             player.teamId = teamId;
             player.position = position;
             saveDatabase();
-            alert("Oyuncu detayları başarıyla güncellendi.");
+            alert("Oyuncu detayları başarıyla güncellendi."); logAdminAction("EDIT_PLAYER", "Oyuncu düzenlendi");
             renderAll();
         }
     };
@@ -3581,7 +3656,7 @@ function initEventHandlers() {
                     player.teamId = "";
                     document.getElementById("edit-player-team").value = "";
                     saveDatabase();
-                    alert("Oyuncu başarıyla serbest bırakıldı.");
+                    alert("Oyuncu başarıyla serbest bırakıldı."); logAdminAction("RELEASE_PLAYER", "Oyuncu serbest bırakıldı");
                     renderAll();
                 }
             }
