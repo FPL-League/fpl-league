@@ -112,6 +112,8 @@ let _suppressRenderTimer = null;
 })();
 
 // 2. RIGHT CLICK + F12 + DevTools BLOCKER
+// TEMPORARILY DISABLED FOR DEBUGGING
+/*
 document.addEventListener('contextmenu', function(e) { e.preventDefault(); return false; });
 document.addEventListener('keydown', function(e) {
     // F12
@@ -125,8 +127,11 @@ document.addEventListener('keydown', function(e) {
     // Ctrl+U (View source)
     if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) { e.preventDefault(); return false; }
 });
+*/
 
 // 3. DEVTOOLS OPEN DETECTION - DevTools açıldığında uyarı
+// TEMPORARILY DISABLED FOR DEBUGGING
+/*
 (function() {
     let _dtOpen = false;
     const _threshold = 160;
@@ -145,6 +150,7 @@ document.addEventListener('keydown', function(e) {
         }
     }, 1000);
 })();
+*/
 
 // 4. ADMIN ACTION LOGGER - Admin işlemlerini Firebase'e kaydet
 function logAdminAction(action, details) {
