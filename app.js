@@ -271,6 +271,8 @@ function loadDatabase() {
                         state.currentUser.role = freshUser.role; // force correct role
                         const localAvatar = localStorage.getItem(`fpl_avatar_${state.currentUser.username}`);
                         if (localAvatar) state.currentUser.avatar = localAvatar;
+                        // Sync localStorage so page refresh respects approved status
+                        localStorage.setItem("fpl_session", JSON.stringify(state.currentUser));
                     } else {
                         state.currentUser = null;
                         localStorage.removeItem("fpl_session");
