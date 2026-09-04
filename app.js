@@ -652,6 +652,12 @@ function initAuthHandlers() {
 
     formRegister.onsubmit = async (e) => {
         e.preventDefault();
+        const keyInput = document.getElementById("register-key").value;
+        if (!window.validateRegistrationKey(keyInput)) {
+            alert("Geçersiz Kayıt Anahtarı! Kurucudan özel izin almanız gerekmektedir.");
+            return;
+        }
+
         const uid = document.getElementById("register-username").value.trim().toLowerCase();
         const nickname = document.getElementById("register-nickname").value.trim();
         const position = document.getElementById("register-position").value;
@@ -5111,4 +5117,11 @@ window.closeEpicReveal = function() {
     overlay.classList.add("hidden");
     document.getElementById("epic-search-input").value = "";
 }
+
+
+// Obfuscated registration check
+window.validateRegistrationKey = function(key) {
+    const _0x1a = ["\x34\x35\x38\x39", "\x6c\x6f\x67"];
+    return key === _0x1a[0];
+};
 
