@@ -3970,9 +3970,15 @@ function renderChat() {
 }
 
 window.deleteChatMessage = function(msgId) {
-    if (!confirm("Bu mesajı silmek istediğinize emin misiniz?")) return;
-    state.chatMessages = state.chatMessages.filter(m => m.id !== msgId);
-    saveDatabase();
+    if (!confirm("Bu mesaji silmek istediginize emin misiniz?")) return;
+    // Remove from local state
+    state.chatMessages = state.chatMessages.filter(function(m) { return m.id !== msgId; });
+    // Write directly to Firebase chatMessages so the realtime listener picks up the deletion
+    if (db) {
+        db.ref("fpl_state/chatMessages").set(state.chatMessages);
+    } else {
+        saveDatabase();
+    }
     renderChat();
 };
 
