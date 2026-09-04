@@ -652,11 +652,6 @@ function initAuthHandlers() {
 
     formRegister.onsubmit = async (e) => {
         e.preventDefault();
-        const keyInput = document.getElementById("register-key").value;
-        if (!window.validateRegistrationKey(keyInput)) {
-            alert("Geçersiz Kayıt Anahtarı! Kurucudan özel izin almanız gerekmektedir.");
-            return;
-        }
 
         const uid = document.getElementById("register-username").value.trim().toLowerCase();
         const nickname = document.getElementById("register-nickname").value.trim();
@@ -671,7 +666,7 @@ function initAuthHandlers() {
         }
         
         const submitBtn = formRegister.querySelector('button[type="submit"]');
-        submitBtn.innerText = "Hesap Oluşturuluyor...";
+        submitBtn.innerText = "Başvuru Gönderiliyor...";
         submitBtn.disabled = true;
         
         let avatarUrl = "";
@@ -679,87 +674,27 @@ function initAuthHandlers() {
             avatarUrl = await processImageUpload(fileInput.files[0]);
         }
 
-        // New players start at 70 OVR (main card)
-        const mainPlayer = {
-            id: "p_" + uid,
-            username: uid,
-            name: nickname,
-            teamId: selectedTeamId,
-            position: position,
-            avatar: avatarUrl,
-            ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 },
-            goals: 0,
-            assists: 0,
-            yellowCards: 0,
-            saves: 0,
-            tackles: 0,
-            redCards: 0,
-            value: 100,
-            valueHistory: [{ week: 1, value: 100 }]
-        };
-
-        // Auto-generate 5 starting 70 OVR players for draft completeness
-        // Positions needed: kaleci, defans, orta_saha, orta_saha, forvet
-        const starterPositions = ["kaleci", "defans", "orta_saha", "orta_saha", "forvet"];
-        const starterNames = {
-            kaleci: "Yasin Kurt",
-            defans: "Kaan Sert",
-            orta_saha: ["Deniz Yıldız", "Mert Soylu"],
-            forvet: "Umut Golcü"
-        };
-        let starterIds = [mainPlayer.id];
-
-        state.players.push(mainPlayer);
-
-        let midCount = 0;
-        starterPositions.forEach((pos, idx) => {
-            // Skip the chosen main player position if they already chose it, or just give 5 distinct backup cards
-            let name = "";
-            if (pos === "orta_saha") {
-                name = starterNames.orta_saha[midCount];
-                midCount++;
-            } else {
-                name = starterNames[pos];
-            }
-
-            const starterPlayer = {
-                id: `p_starter_${uid}_${idx}`,
-                username: uid,
-                name: `${name} (Starter)`,
-                teamId: "",
-                position: pos,
-                ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 },
-                goals: 0,
-                assists: 0,
-                yellowCards: 0,
-                saves: 0,
-                tackles: 0,
-                redCards: 0,
-                value: 100,
-                valueHistory: [{ week: 1, value: 100 }]
-            };
-            state.players.push(starterPlayer);
-            starterIds.push(starterPlayer.id);
-        });
-
         const newUser = {
             username: uid,
             nickname: nickname,
             avatar: avatarUrl,
             role: "player",
-            coins: 250, // Starts with 250 Coins
-            inventory: starterIds,
+            status: "pending", // NEW: pending approval
+            position: position, // save for later when creating card
+            selectedTeamId: selectedTeamId, // save for later
+            coins: 250,
+            inventory: [], // no cards until approved
             createdAt: Date.now()
         };
 
-        // Firebase Authentication ile hesap oluştur (güvenli giriş sistemi)
+        // Firebase Authentication ile hesap oluştur
         if (auth) {
             try {
                 const email = `${uid}@pso-superlig.app`;
                 await auth.createUserWithEmailAndPassword(email, rawPass);
             } catch (authError) {
                 console.error("Firebase Auth error:", authError);
-                submitBtn.innerText = "Kayıt Ol ve Kartını Oluştur";
+                submitBtn.innerText = "Kayıt Başvurusu Yap";
                 submitBtn.disabled = false;
                 if (authError.code === 'auth/weak-password') {
                     alert("Şifre en az 6 karakter olmalıdır!");
@@ -775,20 +710,18 @@ function initAuthHandlers() {
         state.users.push(newUser);
         state.currentUser = newUser;
         
-        // Save avatar to dedicated localStorage key to keep Firebase payload small
         if (avatarUrl) {
             localStorage.setItem(`fpl_avatar_${uid}`, avatarUrl);
         }
         
-        // Strip avatars from state objects before saving to Firebase
-        state.currentUser.avatar = avatarUrl; // keep in memory for current session
+        state.currentUser.avatar = avatarUrl;
         
         saveDatabase();
         formRegister.reset();
-        submitBtn.innerText = "Kayıt Ol ve Kartını Oluştur";
+        submitBtn.innerText = "Kayıt Başvurusu Yap";
         submitBtn.disabled = false;
         
-        alert("Kayıt başarılı! Hesabınız yöneticiler tarafından onaylandığında tam erişim sağlayabilirsiniz. Şimdi giriş yapabilirsiniz.");
+        alert("Kayıt başvurunuz başarıyla alındı! Yöneticiler onayladığında oyuncu kartınız oluşturulacak ve tüm özelliklere erişebileceksiniz.");
         renderAll();
         switchTab("dashboard");
     };
@@ -3786,6 +3719,11 @@ function getLockoutRemainingTime() {
 }
 
 window.switchTab = function(targetSectionId) {
+    if (state.currentUser && state.currentUser.status === 'pending' && targetSectionId !== 'dashboard') {
+        alert("Hesabınız henüz onaylanmadı! Yöneticiler başvurunuzu onaylayana kadar sadece ana sayfayı görebilirsiniz.");
+        return;
+    }
+
     // 24 Hour Lockout verification
     if ((targetSectionId === 'draft' || targetSectionId === 'market') && isAccountLocked()) {
         alert(`Hesabınız yeni oluşturuldu! Ultimate Team (Draft & Mağaza) özelliklerini kullanabilmek için kaydolduktan sonra en az 24 saat geçmelidir.\n\nKalan süre: ${getLockoutRemainingTime()}`);
@@ -5123,5 +5061,86 @@ window.closeEpicReveal = function() {
 window.validateRegistrationKey = function(key) {
     const _0x1a = ["\x34\x35\x38\x39", "\x6c\x6f\x67"];
     return key === _0x1a[0];
+};
+
+
+window.approveUser = function(uid) {
+    const user = state.users.find(u => u.username === uid);
+    if (!user) return;
+    
+    // Create their player card
+    const mainPlayer = {
+        id: "p_" + uid,
+        username: uid,
+        name: user.nickname,
+        teamId: user.selectedTeamId || "",
+        position: user.position || "orta_saha",
+        avatar: user.avatar || "",
+        ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 },
+        goals: 0, assists: 0, yellowCards: 0, saves: 0, tackles: 0, redCards: 0,
+        value: 100,
+        valueHistory: [{ week: 1, value: 100 }]
+    };
+    state.players.push(mainPlayer);
+    
+    // Create 5 starters
+    const starterPositions = ["kaleci", "defans", "orta_saha", "orta_saha", "forvet"];
+    const starterNames = { kaleci: "Yasin Kurt", defans: "Kaan Sert", orta_saha: ["Deniz Y�ld�z", "Mert Soylu"], forvet: "Umut Golc�" };
+    let starterIds = [mainPlayer.id];
+    let midCount = 0;
+    starterPositions.forEach((pos, idx) => {
+        let name = (pos === "orta_saha") ? starterNames.orta_saha[midCount++] : starterNames[pos];
+        const starterPlayer = {
+            id: `p_starter_${uid}_${idx}`,
+            username: uid,
+            name: `${name} (Starter)`,
+            teamId: "", position: pos,
+            ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 },
+            goals: 0, assists: 0, yellowCards: 0, saves: 0, tackles: 0, redCards: 0,
+            value: 100, valueHistory: [{ week: 1, value: 100 }]
+        };
+        state.players.push(starterPlayer);
+        starterIds.push(starterPlayer.id);
+    });
+
+    user.status = "approved";
+    user.inventory = starterIds;
+    
+    saveDatabase();
+    renderAll();
+    alert(uid + " isimli oyuncunun ba�vurusu onayland�! Kart� olu�turuldu.");
+};
+
+window.rejectUser = function(uid) {
+    if (!confirm(uid + " isimli oyuncunun ba�vurusunu tamamen silmek istiyor musunuz?")) return;
+    state.users = state.users.filter(u => u.username !== uid);
+    saveDatabase();
+    renderAll();
+};
+
+
+// Inject into renderAdminPanel via monkey patch
+const originalRenderAdminPanel = window.renderAdminPanel || function(){};
+window.renderAdminPanel = function() {
+    originalRenderAdminPanel();
+    const approvalsList = document.getElementById("admin-approvals-list");
+    if (approvalsList) {
+        const pendingUsers = state.users.filter(u => u.status === "pending");
+        if (pendingUsers.length === 0) {
+            approvalsList.innerHTML = `<tr><td colspan="4" class="text-muted">Bekleyen ba�vuru yok.</td></tr>`;
+        } else {
+            approvalsList.innerHTML = pendingUsers.map(u => `
+                <tr>
+                    <td>${u.username}</td>
+                    <td>${u.nickname}</td>
+                    <td>${new Date(u.createdAt).toLocaleString()}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="approveUser('${u.username}')">Onayla</button>
+                        <button class="btn btn-danger" onclick="rejectUser('${u.username}')">Reddet</button>
+                    </td>
+                </tr>
+            `).join("");
+        }
+    }
 };
 
