@@ -5091,15 +5091,13 @@ window.approveUser = function(uid) {
     if (!user) { alert("Kullanici bulunamadi: " + uid); return; }
     if (user.status === "approved") { alert(uid + " zaten onaylandi."); return; }
 
-    // Create main player card
     var mainPlayer = {
         id: "p_" + uid, username: uid, name: user.nickname,
-        teamId: user.selectedTeamId || "", position: user.position || "orta_saha",
+        teamId: "", position: user.position || "orta_saha",
         ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 },
         goals: 0, assists: 0, yellowCards: 0, saves: 0, tackles: 0, redCards: 0,
         value: 100, valueHistory: [{ week: 1, value: 100 }]
     };
-
     state.players = state.players.filter(function(p) { return p.username !== uid; });
     state.players.push(mainPlayer);
 
@@ -5122,31 +5120,40 @@ window.approveUser = function(uid) {
 
     user.status = "approved";
     user.inventory = starterIds;
-
-    // Re-render immediately so admin sees changes
     renderAll();
 
-    if (!db) { alert(uid + " onaylandi (veritabani yok)!"); return; }
+    // Use Firebase REST API with Auth token (more reliable than SDK for bulk writes)
+    var currentUser = auth && auth.currentUser;
+    if (!currentUser) { alert("Admin oturumu bulunamadi! Tekrar giris yapin."); return; }
 
-    // Write ONLY users + players to Firebase (no avatars to keep payload small)
-    var strippedUsers = state.users.map(function(u) {
-        var c = {}; 
-        Object.keys(u).forEach(function(k) { if (k !== 'avatar') c[k] = u[k]; });
-        return c;
-    });
-    var strippedPlayers = state.players.map(function(p) {
-        var c = {};
-        Object.keys(p).forEach(function(k) { if (k !== 'avatar') c[k] = p[k]; });
-        return c;
-    });
+    currentUser.getIdToken().then(function(token) {
+        var dbUrl = "https://fpl-league-23188-default-rtdb.firebaseio.com/fpl_state";
 
-    db.ref("fpl_state/users").set(strippedUsers).then(function() {
-        return db.ref("fpl_state/players").set(strippedPlayers);
-    }).then(function() {
-        console.log("approveUser: Firebase yazma basarili - " + uid);
+        var strippedUsers = state.users.map(function(u) {
+            var c = {}; Object.keys(u).forEach(function(k) { if (k !== 'avatar') c[k] = u[k]; }); return c;
+        });
+        var strippedPlayers = state.players.map(function(p) {
+            var c = {}; Object.keys(p).forEach(function(k) { if (k !== 'avatar') c[k] = p[k]; }); return c;
+        });
+
+        return fetch(dbUrl + "/users.json?auth=" + token, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(strippedUsers)
+        }).then(function(r) {
+            if (!r.ok) throw new Error("Users yazma hatasi: " + r.status);
+            return fetch(dbUrl + "/players.json?auth=" + token, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(strippedPlayers)
+            });
+        }).then(function(r) {
+            if (!r.ok) throw new Error("Players yazma hatasi: " + r.status);
+            console.log("approveUser: " + uid + " basariyla kaydedildi.");
+        });
     }).catch(function(e) {
-        alert("HATA: Firebase'e yazarken sorun olustu: " + e.message + "\nAdmin panelinden tekrar deneyin.");
-        console.error("approveUser Firebase write failed:", e);
+        alert("Firebase kayit hatasi: " + e.message);
+        console.error(e);
     });
 };
 
