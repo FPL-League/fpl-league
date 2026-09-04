@@ -1770,3 +1770,9 @@ input:focus, select:focus {
     100% { transform: translate(0, 0) rotate(0deg); }
 }
 
+
+/* Fallback SVG for player */
+.epic-silhouette {
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><path fill="%23ffffff" d="M110.5 44c11.5 0 21-9.5 21-21s-9.5-21-21-21-21 9.5-21 21 9.5 21 21 21zm-13 14c-11.5 0-21-3.5-21-3.5L34 26l-10 18s31 16 38.5 25.5 13 41.5 13 41.5l-33.5 18 10 20s35-22 47.5-25 24-21 24-21v36l-21 34 16 11 25.5-44v-56s16.5 13 32.5 13v-22c-15.5 0-33-14-41-26L85.5 58s4-8 12-8zM153 146c-12 0-22 10-22 22s10 22 22 22 22-10 22-22-10-22-22-22z"/></svg>') no-repeat center;
+}
+
