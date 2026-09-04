@@ -1695,11 +1695,11 @@ input:focus, select:focus {
 .epic-silhouette {
     position: absolute;
     bottom: -10%;
-    width: 500px;
-    height: 500px;
-    background: url("https://i.pinimg.com/originals/b0/02/b7/b002b7ff9c8cf5081ed484d08112d767.gif") no-repeat center;
+    width: 400px;
+    height: 400px;
+    background: url("https://cdn-icons-png.flaticon.com/512/3233/3233379.png") no-repeat center;
     background-size: contain;
-    filter: brightness(0) drop-shadow(0 0 20px rgba(255,255,255,0.8));
+    filter: invert(1) drop-shadow(0 0 20px rgba(255,255,255,0.8));
     opacity: 0;
     transform: translateY(100px) scale(0.8);
 }
@@ -1711,8 +1711,8 @@ input:focus, select:focus {
 @keyframes silhouetteRise {
     0% { opacity: 0; transform: translateY(100px) scale(0.8); }
     30% { opacity: 0.4; }
-    80% { opacity: 0.8; transform: translateY(0px) scale(1.1); filter: brightness(0) drop-shadow(0 0 50px var(--accent-gold)); }
-    100% { opacity: 0; transform: translateY(-50px) scale(1.5); filter: brightness(0) drop-shadow(0 0 100px #fff); }
+    80% { opacity: 0.8; transform: translateY(0px) scale(1.1); filter: invert(1) drop-shadow(0 0 50px var(--accent-gold)); }
+    100% { opacity: 0; transform: translateY(-50px) scale(1.5); filter: invert(1) drop-shadow(0 0 100px #fff); }
 }
 
 /* Flash */
