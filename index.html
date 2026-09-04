@@ -844,3 +844,35 @@
     <script src="app.js?v=42"></script>
 </body>
 </html>
+
+<!-- Temporary hack to insert approvals tab using JS because of HTML formatting issues -->
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const authTab = document.getElementById("admin-auth-tab");
+        if (authTab) {
+            const approvalsHTML = `
+                <div class="admin-sub-section hidden" id="admin-approvals-tab">
+                    <div class="card table-card mt-4">
+                        <h3 style="color: var(--accent-gold); margin: 1rem;"><i class="fa-solid fa-user-check"></i> Bekleyen Kayýt Baþvurularý</h3>
+                        <div style="overflow-x: auto; padding: 1rem;">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Oyun Ýçi ID</th>
+                                        <th>Ýsim (Nickname)</th>
+                                        <th>Tarih</th>
+                                        <th>Ýþlem</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-approvals-list">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            authTab.insertAdjacentHTML("afterend", approvalsHTML);
+        }
+    });
+</script>
+
