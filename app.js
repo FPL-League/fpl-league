@@ -5068,6 +5068,7 @@ if (epicSearchForm) {
 function startEpicReveal(player) {
     const overlay = document.getElementById("epic-reveal-overlay");
     const silhouette = document.getElementById("epic-silhouette");
+    const ball = document.getElementById("epic-ball");
     const flash = document.querySelector(".epic-flash");
     const cardReveal = document.getElementById("epic-card-reveal");
     const cardContainer = document.getElementById("epic-card-container");
@@ -5075,14 +5076,16 @@ function startEpicReveal(player) {
     // Reset state
     overlay.classList.remove("hidden");
     silhouette.classList.remove("anim-silhouette-play");
+    if (ball) ball.classList.remove("anim-ball-play");
     flash.classList.remove("anim-flash-play");
     cardReveal.classList.remove("anim-card-slam");
     overlay.classList.remove("anim-shake");
     cardContainer.innerHTML = "";
     
-    // 1. Start silhouette rise
+    // 1. Start silhouette and ball
     setTimeout(() => {
         silhouette.classList.add("anim-silhouette-play");
+        if (ball) ball.classList.add("anim-ball-play");
         overlay.classList.add("anim-shake");
     }, 100);
 

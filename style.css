@@ -1776,3 +1776,40 @@ input:focus, select:focus {
     background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><path fill="%23ffffff" d="M110.5 44c11.5 0 21-9.5 21-21s-9.5-21-21-21-21 9.5-21 21 9.5 21 21 21zm-13 14c-11.5 0-21-3.5-21-3.5L34 26l-10 18s31 16 38.5 25.5 13 41.5 13 41.5l-33.5 18 10 20s35-22 47.5-25 24-21 24-21v36l-21 34 16 11 25.5-44v-56s16.5 13 32.5 13v-22c-15.5 0-33-14-41-26L85.5 58s4-8 12-8zM153 146c-12 0-22 10-22 22s10 22 22 22 22-10 22-22-10-22-22-22z"/></svg>') no-repeat center;
 }
 
+
+/* EPIC BALL */
+.epic-ball {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background: radial-gradient(circle at 30% 30%, #fff, #555);
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(255,255,255,0.8);
+    opacity: 0;
+    z-index: 10;
+}
+
+.anim-ball-play {
+    animation: ballIncoming 3s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes ballIncoming {
+    0% { opacity: 0; transform: translate(-300px, -200px) scale(0.5); }
+    70% { opacity: 1; transform: translate(50px, -100px) scale(1); }
+    80% { opacity: 1; transform: translate(50px, -100px) scale(1.2); filter: drop-shadow(0 0 30px #fff); } /* Meets player */
+    100% { opacity: 0; transform: translate(400px, -400px) scale(2); filter: drop-shadow(0 0 50px #fff); } /* Shoots out */
+}
+
+/* Update Player Silhouette to do a bicycle kick (rotate backwards) */
+.anim-silhouette-play {
+    animation: silhouetteBicycleKick 3s cubic-bezier(0.1, 0.8, 0.2, 1) forwards !important;
+}
+
+@keyframes silhouetteBicycleKick {
+    0% { opacity: 0; transform: translateY(100px) scale(0.8) rotate(0deg); }
+    30% { opacity: 0.4; }
+    70% { opacity: 0.8; transform: translateY(0px) scale(1.1) rotate(-45deg); filter: invert(1) drop-shadow(0 0 50px var(--accent-gold)); } /* Jumping back */
+    80% { opacity: 1; transform: translateY(-50px) scale(1.2) rotate(-90deg); filter: invert(1) drop-shadow(0 0 80px #fff); } /* Hitting the ball */
+    100% { opacity: 0; transform: translateY(-20px) scale(1.5) rotate(-100deg); filter: invert(1) drop-shadow(0 0 100px #fff); } /* Falling back */
+}
+
