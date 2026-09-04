@@ -5093,7 +5093,7 @@ window.approveUser = function(uid) {
 
     var mainPlayer = {
         id: "p_" + uid, username: uid, name: user.nickname,
-        teamId: "", position: user.position || "orta_saha",
+        teamId: user.selectedTeamId || "", position: user.position || "orta_saha",
         ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 },
         goals: 0, assists: 0, yellowCards: 0, saves: 0, tackles: 0, redCards: 0,
         value: 100, valueHistory: [{ week: 1, value: 100 }]
