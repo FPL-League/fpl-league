@@ -227,8 +227,7 @@ function loadDatabase() {
     if (db) {
         db.ref('fpl_state').on('value', (snapshot) => {
             if (!snapshot.exists()) return;
-            // If _suppressFirebaseRender is set, we just wrote data - skip this echo from Firebase
-            if (_suppressFirebaseRender) return;
+            // If _suppressFirebaseRender is set, only skip renderAll (not state update)
             const data = snapshot.val();
             state.isLoaded = true;
             if (data && data.users) {
@@ -5096,17 +5095,14 @@ window.approveUser = function(uid) {
     var mainPlayer = {
         id: "p_" + uid, username: uid, name: user.nickname,
         teamId: user.selectedTeamId || "", position: user.position || "orta_saha",
-        avatar: user.avatar || "",
         ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 },
         goals: 0, assists: 0, yellowCards: 0, saves: 0, tackles: 0, redCards: 0,
         value: 100, valueHistory: [{ week: 1, value: 100 }]
     };
 
-    // Remove duplicates first
     state.players = state.players.filter(function(p) { return p.username !== uid; });
     state.players.push(mainPlayer);
 
-    // Create 5 starters
     var starterPositions = ["kaleci", "defans", "orta_saha", "orta_saha", "forvet"];
     var starterNames = { kaleci: "Yasin Kurt", defans: "Kaan Sert", orta_saha: ["Deniz Yildiz", "Mert Soylu"], forvet: "Umut Golcu" };
     var starterIds = [mainPlayer.id];
@@ -5127,18 +5123,31 @@ window.approveUser = function(uid) {
     user.status = "approved";
     user.inventory = starterIds;
 
-    // Suppress Firebase listener re-render to prevent race condition
-    _suppressFirebaseRender = true;
-    if (_suppressRenderTimer) clearTimeout(_suppressRenderTimer);
-    _suppressRenderTimer = setTimeout(function() { _suppressFirebaseRender = false; }, 5000);
-
-    if (db) {
-        // Use saveDatabase() so the suppress flag works correctly
-        saveDatabase();
-    }
-
+    // Re-render immediately so admin sees changes
     renderAll();
-    alert(uid + " isimli oyuncunun basvurusu onaylandi! Karti olusturuldu.");
+
+    if (!db) { alert(uid + " onaylandi (veritabani yok)!"); return; }
+
+    // Write ONLY users + players to Firebase (no avatars to keep payload small)
+    var strippedUsers = state.users.map(function(u) {
+        var c = {}; 
+        Object.keys(u).forEach(function(k) { if (k !== 'avatar') c[k] = u[k]; });
+        return c;
+    });
+    var strippedPlayers = state.players.map(function(p) {
+        var c = {};
+        Object.keys(p).forEach(function(k) { if (k !== 'avatar') c[k] = p[k]; });
+        return c;
+    });
+
+    db.ref("fpl_state/users").set(strippedUsers).then(function() {
+        return db.ref("fpl_state/players").set(strippedPlayers);
+    }).then(function() {
+        console.log("approveUser: Firebase yazma basarili - " + uid);
+    }).catch(function(e) {
+        alert("HATA: Firebase'e yazarken sorun olustu: " + e.message + "\nAdmin panelinden tekrar deneyin.");
+        console.error("approveUser Firebase write failed:", e);
+    });
 };
 
 window.rejectUser = function(uid) {
