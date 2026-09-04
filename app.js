@@ -61,6 +61,7 @@ if (typeof firebase !== 'undefined' && _isAllowed) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = (typeof firebase !== 'undefined' && _isAllowed) ? firebase.database() : null;
+const auth = (typeof firebase !== 'undefined' && _isAllowed) ? firebase.auth() : null;
 
 // --- APP STATE CONTAINER ---
 let state = {
@@ -605,7 +606,6 @@ function initAuthHandlers() {
         e.preventDefault();
         const inputStr = document.getElementById("login-username").value.trim().toLowerCase();
         const rawPass = document.getElementById("login-password").value;
-        const hashedPass = await hashPassword(rawPass);
 
         // Allow login by exact username or exact nickname (case-insensitive)
         const user = state.users.find(u => 
@@ -623,27 +623,27 @@ function initAuthHandlers() {
         loginBtn.disabled = true;
 
         try {
-            const authSnap = await db.ref('fpl_auth/' + user.username).once('value');
-            const storedHash = authSnap.val();
-
-            if (storedHash === hashedPass) {
-                // Hardcoded admin overrides removed for security
-                state.currentUser = user;
-                saveDatabase();
-                formLogin.reset();
-                renderAll();
-                
-                if (user.role === 'admin') {
-                    switchTab("admin");
-                } else {
-                    switchTab("dashboard");
-                }
+            // Firebase Authentication ile giriş
+            const email = `${user.username}@pso-superlig.app`;
+            await auth.signInWithEmailAndPassword(email, rawPass);
+            
+            state.currentUser = user;
+            localStorage.setItem("fpl_session", JSON.stringify(user));
+            formLogin.reset();
+            renderAll();
+            
+            if (user.role === 'admin') {
+                switchTab("admin");
             } else {
-                alert("Hatalı Oyun İçi ID veya şifre!");
+                switchTab("dashboard");
             }
         } catch (error) {
             console.error(error);
-            alert("Bağlantı hatası, lütfen tekrar deneyin.");
+            if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                alert("Hatalı Oyun İçi ID veya şifre!");
+            } else {
+                alert("Bağlantı hatası, lütfen tekrar deneyin.");
+            }
         } finally {
             loginBtn.innerText = origText;
             loginBtn.disabled = false;
@@ -656,7 +656,6 @@ function initAuthHandlers() {
         const nickname = document.getElementById("register-nickname").value.trim();
         const position = document.getElementById("register-position").value;
         const rawPass = document.getElementById("register-password").value;
-        const hashedPass = await hashPassword(rawPass);
         const fileInput = document.getElementById("register-avatar");
         const selectedTeamId = document.getElementById("register-team") ? document.getElementById("register-team").value : "";
 
@@ -747,9 +746,24 @@ function initAuthHandlers() {
             createdAt: Date.now()
         };
 
-        // Firebase fpl_auth düğümüne şifreyi ayrı kaydet
-        if (db) {
-            await db.ref('fpl_auth/' + uid).set(hashedPass);
+        // Firebase Authentication ile hesap oluştur (güvenli giriş sistemi)
+        if (auth) {
+            try {
+                const email = `${uid}@pso-superlig.app`;
+                await auth.createUserWithEmailAndPassword(email, rawPass);
+            } catch (authError) {
+                console.error("Firebase Auth error:", authError);
+                submitBtn.innerText = "Kayıt Ol ve Kartını Oluştur";
+                submitBtn.disabled = false;
+                if (authError.code === 'auth/weak-password') {
+                    alert("Şifre en az 6 karakter olmalıdır!");
+                } else if (authError.code === 'auth/email-already-in-use') {
+                    alert("Bu Oyun İçi ID zaten kayıtlı!");
+                } else {
+                    alert("Kayıt sırasında bir hata oluştu: " + authError.message);
+                }
+                return;
+            }
         }
 
         state.users.push(newUser);
