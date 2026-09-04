@@ -5086,10 +5086,13 @@ window.validateRegistrationKey = function(key) {
 
 
 window.approveUser = function(uid) {
-    const user = state.users.find(u => u.username === uid);
-    if (!user) return;
-    
-    // Create their player card
+    const user = state.users.find(function(u) { return u.username === uid; });
+    if (!user) { alert("Kullanici bulunamadi: " + uid); return; }
+
+    // Prevent double-approving
+    if (user.status === "approved") { alert(uid + " zaten onaylandi."); return; }
+
+    // Create main player card
     const mainPlayer = {
         id: "p_" + uid,
         username: uid,
@@ -5099,43 +5102,69 @@ window.approveUser = function(uid) {
         avatar: user.avatar || "",
         ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 },
         goals: 0, assists: 0, yellowCards: 0, saves: 0, tackles: 0, redCards: 0,
-        value: 100,
-        valueHistory: [{ week: 1, value: 100 }]
+        value: 100, valueHistory: [{ week: 1, value: 100 }]
     };
+
+    // Remove duplicate if already exists
+    state.players = state.players.filter(function(p) { return p.username !== uid; });
     state.players.push(mainPlayer);
-    
+
     // Create 5 starters
-    const starterPositions = ["kaleci", "defans", "orta_saha", "orta_saha", "forvet"];
-    const starterNames = { kaleci: "Yasin Kurt", defans: "Kaan Sert", orta_saha: ["Deniz Y�ld�z", "Mert Soylu"], forvet: "Umut Golc�" };
-    let starterIds = [mainPlayer.id];
-    let midCount = 0;
-    starterPositions.forEach((pos, idx) => {
-        let name = (pos === "orta_saha") ? starterNames.orta_saha[midCount++] : starterNames[pos];
-        const starterPlayer = {
-            id: `p_starter_${uid}_${idx}`,
+    var starterPositions = ["kaleci", "defans", "orta_saha", "orta_saha", "forvet"];
+    var starterNames = { kaleci: "Yasin Kurt", defans: "Kaan Sert", orta_saha: ["Deniz Yildiz", "Mert Soylu"], forvet: "Umut Golcu" };
+    var starterIds = [mainPlayer.id];
+    var midCount = 0;
+    starterPositions.forEach(function(pos, i) {
+        var name = (pos === "orta_saha") ? starterNames.orta_saha[midCount++] : starterNames[pos];
+        var sp = {
+            id: "p_starter_" + uid + "_" + i,
             username: uid,
-            name: `${name} (Starter)`,
+            name: name + " (Starter)",
             teamId: "", position: pos,
             ratings: { pac: 70, sho: 70, pas: 70, dri: 70, def: 70, phy: 70 },
             goals: 0, assists: 0, yellowCards: 0, saves: 0, tackles: 0, redCards: 0,
             value: 100, valueHistory: [{ week: 1, value: 100 }]
         };
-        state.players.push(starterPlayer);
-        starterIds.push(starterPlayer.id);
+        state.players.push(sp);
+        starterIds.push(sp.id);
     });
 
+    // Update user in state
     user.status = "approved";
     user.inventory = starterIds;
-    
-    saveDatabase();
+
+    // Write ONLY the changed fields directly to Firebase to avoid race conditions
+    if (db) {
+        var updatedUsers = state.users.map(function(u) {
+            var copy = Object.assign({}, u);
+            delete copy.avatar;
+            return copy;
+        });
+        var updatedPlayers = state.players.map(function(p) {
+            var copy = Object.assign({}, p);
+            delete copy.avatar;
+            return copy;
+        });
+        db.ref("fpl_state/users").set(updatedUsers).catch(function(e) { console.error("approveUser users write failed:", e); });
+        db.ref("fpl_state/players").set(updatedPlayers).catch(function(e) { console.error("approveUser players write failed:", e); });
+    }
+
+    // Update localStorage for current user (admin) unchanged, but re-render
     renderAll();
-    alert(uid + " isimli oyuncunun ba�vurusu onayland�! Kart� olu�turuldu.");
+    alert(uid + " isimli oyuncunun basvurusu onaylandi! Karti olusturuldu.");
 };
 
 window.rejectUser = function(uid) {
-    if (!confirm(uid + " isimli oyuncunun ba�vurusunu tamamen silmek istiyor musunuz?")) return;
-    state.users = state.users.filter(u => u.username !== uid);
-    saveDatabase();
+    if (!confirm(uid + " isimli oyuncunun basvurusunu tamamen silmek istiyor musunuz?")) return;
+    state.users = state.users.filter(function(u) { return u.username !== uid; });
+    state.players = state.players.filter(function(p) { return p.username !== uid; });
+    // Write directly to Firebase
+    if (db) {
+        var updatedUsers = state.users.map(function(u) { var c = Object.assign({}, u); delete c.avatar; return c; });
+        var updatedPlayers = state.players.map(function(p) { var c = Object.assign({}, p); delete c.avatar; return c; });
+        db.ref("fpl_state/users").set(updatedUsers);
+        db.ref("fpl_state/players").set(updatedPlayers);
+    }
     renderAll();
 };
 
