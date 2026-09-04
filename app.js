@@ -1,4 +1,4 @@
-// ==========================================================================
+ï»¿// ==========================================================================
 // FPL Ultimate Market, Packs and Economy - Core Application JS
 // ==========================================================================
 
@@ -2988,6 +2988,19 @@ function renderAdminPlayerEditDropdown(searchStr = "") {
 function renderAdminPanel() {
     initAdminSubTabs();
 
+    // APPROVALS: render pending users list
+    const _approvalsList = document.getElementById("admin-approvals-list");
+    if (_approvalsList) {
+        const _pending = state.users.filter(function(u) { return u.status === "pending"; });
+        if (_pending.length === 0) {
+            _approvalsList.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1rem;color:#aaa;">Bekleyen basvuru yok.</td></tr>';
+        } else {
+            _approvalsList.innerHTML = _pending.map(function(u) {
+                return '<tr><td>' + u.username + '</td><td>' + u.nickname + '</td><td>' + new Date(u.createdAt).toLocaleString() + '</td><td><button class="btn btn-primary" style="margin-right:4px;" onclick="approveUser(\'' + u.username + '\')">Onayla</button><button class="btn btn-danger" onclick="rejectUser(\'' + u.username + '\')">Reddet</button></td></tr>';
+            }).join("");
+        }
+    }
+
     // 1. Fill Fixture Teams
     const fixtureHome = document.getElementById("fixture-home");
     const fixtureAway = document.getElementById("fixture-away");
@@ -5085,7 +5098,7 @@ window.approveUser = function(uid) {
     
     // Create 5 starters
     const starterPositions = ["kaleci", "defans", "orta_saha", "orta_saha", "forvet"];
-    const starterNames = { kaleci: "Yasin Kurt", defans: "Kaan Sert", orta_saha: ["Deniz Yýldýz", "Mert Soylu"], forvet: "Umut Golcü" };
+    const starterNames = { kaleci: "Yasin Kurt", defans: "Kaan Sert", orta_saha: ["Deniz Yï¿½ldï¿½z", "Mert Soylu"], forvet: "Umut Golcï¿½" };
     let starterIds = [mainPlayer.id];
     let midCount = 0;
     starterPositions.forEach((pos, idx) => {
@@ -5108,11 +5121,11 @@ window.approveUser = function(uid) {
     
     saveDatabase();
     renderAll();
-    alert(uid + " isimli oyuncunun baþvurusu onaylandý! Kartý oluþturuldu.");
+    alert(uid + " isimli oyuncunun baï¿½vurusu onaylandï¿½! Kartï¿½ oluï¿½turuldu.");
 };
 
 window.rejectUser = function(uid) {
-    if (!confirm(uid + " isimli oyuncunun baþvurusunu tamamen silmek istiyor musunuz?")) return;
+    if (!confirm(uid + " isimli oyuncunun baï¿½vurusunu tamamen silmek istiyor musunuz?")) return;
     state.users = state.users.filter(u => u.username !== uid);
     saveDatabase();
     renderAll();
@@ -5127,7 +5140,7 @@ window.renderAdminPanel = function() {
     if (approvalsList) {
         const pendingUsers = state.users.filter(u => u.status === "pending");
         if (pendingUsers.length === 0) {
-            approvalsList.innerHTML = `<tr><td colspan="4" class="text-muted">Bekleyen baþvuru yok.</td></tr>`;
+            approvalsList.innerHTML = `<tr><td colspan="4" class="text-muted">Bekleyen baï¿½vuru yok.</td></tr>`;
         } else {
             approvalsList.innerHTML = pendingUsers.map(u => `
                 <tr>
@@ -5143,4 +5156,5 @@ window.renderAdminPanel = function() {
         }
     }
 };
+
 
