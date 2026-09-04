@@ -42,6 +42,9 @@
                 <button class="nav-item" data-target="players">
                     <i class="fa-solid fa-users"></i> Oyuncular
                 </button>
+                <button class="nav-item" data-target="player-search">
+                    <i class="fa-solid fa-magnifying-glass"></i> Oyuncu Ara
+                </button>
                 <button class="nav-item" data-target="stats">
                     <i class="fa-solid fa-chart-line"></i> İstatistikler
                 </button>
@@ -647,8 +650,34 @@
                 </section>
 
 
-            </div>
+
+            <!-- PLAYER SEARCH SECTION -->
+            <section id="player-search-section" class="tab-content hidden">
+                <div class="card" style="max-width: 600px; margin: 0 auto; text-align: center; padding: 3rem 2rem;">
+                    <h2 style="margin-bottom: 1rem; color: var(--accent-gold);"><i class="fa-solid fa-magnifying-glass"></i> Efsanevi Oyuncu Ara</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 2rem;">İsmini yazın ve oyuncuyu paket açılımı animasyonu ile keşfedin.</p>
+                    
+                    <form id="epic-search-form" style="display: flex; gap: 1rem; max-width: 400px; margin: 0 auto;">
+                        <input type="text" id="epic-search-input" class="form-control" placeholder="Oyuncu Adı (Örn: Lorenzo)" required style="font-size: 1.2rem; padding: 1rem; flex: 1;">
+                        <button type="submit" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.2rem; font-weight: bold;"><i class="fa-solid fa-bolt"></i></button>
+                    </form>
+                    <div id="epic-search-error" style="color: var(--accent-red); margin-top: 1rem; display: none; font-weight: bold;">Oyuncu bulunamadı!</div>
+                </div>
+            </section>
         </main>
+    </div>
+
+    <!-- EPIC REVEAL OVERLAY -->
+    <div id="epic-reveal-overlay" class="hidden">
+        <div class="stadium-lights"></div>
+        <div class="stadium-lights right"></div>
+        <div id="epic-silhouette" class="epic-silhouette"></div>
+        <div class="epic-flash"></div>
+        
+        <div id="epic-card-reveal" class="hidden">
+            <div id="epic-card-container"></div>
+            <button class="btn btn-secondary" onclick="closeEpicReveal()" style="margin-top: 2rem; position: relative; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">Kapat</button>
+        </div>
     </div>
 
     <!-- Team Detail Modal (Squad List) -->

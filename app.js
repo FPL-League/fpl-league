@@ -5039,3 +5039,73 @@ window.saveDatabase = function() {
     }
 };
 
+
+// --- EPIC PLAYER SEARCH REVEAL ---
+const epicSearchForm = document.getElementById("epic-search-form");
+if (epicSearchForm) {
+    epicSearchForm.onsubmit = (e) => {
+        e.preventDefault();
+        const searchInput = document.getElementById("epic-search-input").value.trim().toLowerCase();
+        const errDiv = document.getElementById("epic-search-error");
+        errDiv.style.display = "none";
+
+        if (!searchInput) return;
+
+        // Find player by name or username
+        const player = state.players.find(p => 
+            p.name.toLowerCase().includes(searchInput) || p.username.toLowerCase().includes(searchInput)
+        );
+
+        if (!player) {
+            errDiv.style.display = "block";
+            return;
+        }
+
+        startEpicReveal(player);
+    };
+}
+
+function startEpicReveal(player) {
+    const overlay = document.getElementById("epic-reveal-overlay");
+    const silhouette = document.getElementById("epic-silhouette");
+    const flash = document.querySelector(".epic-flash");
+    const cardReveal = document.getElementById("epic-card-reveal");
+    const cardContainer = document.getElementById("epic-card-container");
+    
+    // Reset state
+    overlay.classList.remove("hidden");
+    silhouette.classList.remove("anim-silhouette-play");
+    flash.classList.remove("anim-flash-play");
+    cardReveal.classList.remove("anim-card-slam");
+    overlay.classList.remove("anim-shake");
+    cardContainer.innerHTML = "";
+    
+    // 1. Start silhouette rise
+    setTimeout(() => {
+        silhouette.classList.add("anim-silhouette-play");
+        overlay.classList.add("anim-shake");
+    }, 100);
+
+    // 2. Flash bang at 3 seconds
+    setTimeout(() => {
+        flash.classList.add("anim-flash-play");
+        overlay.classList.remove("anim-shake"); // stop shaking
+    }, 3000);
+
+    // 3. Reveal Card right after flash starts (3.2 seconds)
+    setTimeout(() => {
+        const ovr = getPlayerOVR(player);
+        const cardClass = getCardClass(ovr);
+        cardContainer.innerHTML = createFutCardHTML(player, ovr, cardClass);
+        
+        cardReveal.classList.remove("hidden");
+        cardReveal.classList.add("anim-card-slam");
+    }, 3200);
+}
+
+window.closeEpicReveal = function() {
+    const overlay = document.getElementById("epic-reveal-overlay");
+    overlay.classList.add("hidden");
+    document.getElementById("epic-search-input").value = "";
+}
+
