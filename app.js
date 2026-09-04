@@ -227,6 +227,8 @@ function loadDatabase() {
     if (db) {
         db.ref('fpl_state').on('value', (snapshot) => {
             if (!snapshot.exists()) return;
+            // If _suppressFirebaseRender is set, we just wrote data - skip this echo from Firebase
+            if (_suppressFirebaseRender) return;
             const data = snapshot.val();
             state.isLoaded = true;
             if (data && data.users) {
