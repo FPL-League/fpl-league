@@ -1,0 +1,26 @@
+name: Hourly Firebase Backup
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Runs every hour at minute 0
+  workflow_dispatch:      # Allows manual trigger from GitHub UI
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate timestamp
+        id: timestamp
+        run: echo "timestamp=$(date +'%Y%m%d_%H%M')" >> $GITHUB_ENV
+
+      - name: Download Firebase Database
+        run: |
+          curl -s "https://fpl-league-23188-default-rtdb.firebaseio.com/fpl_state.json" > db_backup_${{ env.timestamp }}.json
+
+      - name: Upload Backup as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ env.timestamp }}
+          path: db_backup_${{ env.timestamp }}.json
+          retention-days: 90
