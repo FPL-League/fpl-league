@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    Arena FPL League - Modern & Premium Style Sheet (With Packs & Economy)
    ========================================================================== */
 
@@ -858,11 +858,11 @@ tbody tr:hover {
 .draft-pitch {
     position: relative;
     width: 100%;
-    aspect-ratio: 0.72;
+    min-height: 650px;
     background: linear-gradient(180deg, #134611 0%, #0d2f0d 100%);
     border: 4px solid rgba(255, 255, 255, 0.15);
     border-radius: 16px;
-    padding: 20px;
+    padding: 40px 20px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -1840,4 +1840,8 @@ input:focus, select:focus {
     align-items: center;
     width: 100%;
     z-index: 2;
+}
+.draft-slot.filled .fut-card {
+    min-height: 140px !important;
+    height: 140px !important;
 }
