@@ -765,37 +765,58 @@
                         <button id="match-close-btn" class="btn btn-primary hidden" style="margin-top: 1.5rem; font-size: 1.2rem; padding: 1rem 3rem;" onclick="closeMatchOverlay()">Maci Kapat & Odulu Al</button>
                     </div>
                 </div>
-            </section><!-- MARKET SECTION -->
+            </section>            <!-- MARKET SECTION -->
             <section id="market" class="content-section">
-                <div class="card" style="margin-bottom: 2rem;">
-                    <h3><i class="fa-solid fa-box-open"></i> FC Magazasi (Paketler)</h3>
-                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
-                        <div class="pack-container" onclick="buyPack('bronze', 250)">
-                            <div class="pack-title">Bronz Paket</div>
-                            <div style="font-size: 0.9rem; color: #ccc;">%70 Bronz, %25 Gm, %5 Altn</div>
-                            <div class="pack-price">250 🪙</div>
-                        </div>
-                        <div class="pack-container" onclick="buyPack('silver', 1000)" style="background: linear-gradient(135deg, #757F9A 0%, #D7DDE8 100%);">
-                            <div class="pack-title" style="color: #222;">Gumus Paket</div>
-                            <div style="font-size: 0.9rem; color: #444;">%20 Bronz, %60 Gm, %20 Altn</div>
-                            <div class="pack-price" style="color: #111;">1.000 🪙</div>
-                        </div>
-                        <div class="pack-container" onclick="buyPack('gold', 5000)" style="background: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7);">
-                            <div class="pack-title" style="color: #4a3600;">Altin Paket</div>
-                            <div style="font-size: 0.9rem; color: #6a4f00;">%5 Gm, %80 Altn, %15 Efsanevi</div>
-                            <div class="pack-price" style="color: #332400;">5.000 🪙</div>
-                        </div>
-                        <div class="pack-container" onclick="buyPack('legendary', 25000)" style="background: linear-gradient(135deg, #ff00cc, #333399);">
-                            <div class="pack-title">Elit Paket</div>
-                            <div style="font-size: 0.9rem; color: #ddd;">%30 Altn, %70 Efsanevi / TOTW</div>
-                            <div class="pack-price">25.000 🪙</div>
+                <!-- Market Tabs -->
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 1rem;">
+                    <button class="btn btn-primary" id="tab-market-packs" onclick="switchMarketTab('packs')"><i class="fa-solid fa-box-open"></i> Paket Acma</button>
+                    <button class="btn btn-secondary" id="tab-market-list" onclick="switchMarketTab('list')"><i class="fa-solid fa-money-bill-transfer"></i> Oyuncu Pazari</button>
+                    <button class="btn btn-secondary" id="tab-market-sell" onclick="switchMarketTab('sell')"><i class="fa-solid fa-tags"></i> Oyuncu Satma</button>
+                </div>
+
+                <!-- PACKS SUBTAB -->
+                <div id="market-sub-packs">
+                    <div class="card" style="margin-bottom: 2rem;">
+                        <h3><i class="fa-solid fa-box-open"></i> FC Magazasi (Paketler)</h3>
+                        <p style="color: var(--text-muted); margin-bottom: 1rem;">Paket satin alarak yeni oyuncular cikartin.</p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+                            <!-- Bronze Pack -->
+                            <div class="pack-container" onclick="buyPack('bronze', 100)" style="background: linear-gradient(135deg, #cd7f32, #a0522d, #8b4513, #cd7f32);">
+                                <div class="pack-title" style="color: #fff;">Bronz Paket</div>
+                                <div style="font-size: 0.85rem; color: #fff; margin-bottom: 0.5rem;">Max 69 OVR<br>dusuk kartlar da cikabilir</div>
+                                <div class="pack-price" style="background: rgba(0,0,0,0.5); padding: 5px; border-radius: 5px;">100 🪙</div>
+                            </div>
+                            
+                            <!-- Silver Pack -->
+                            <div class="pack-container" onclick="buyPack('silver', 150)" style="background: linear-gradient(135deg, #757F9A 0%, #D7DDE8 100%);">
+                                <div class="pack-title" style="color: #222;">Gumus Paket</div>
+                                <div style="font-size: 0.85rem; color: #444; margin-bottom: 0.5rem;">70 - 79 OVR<br>arasi oyuncular</div>
+                                <div class="pack-price" style="background: rgba(255,255,255,0.5); padding: 5px; border-radius: 5px; color: #111;">150 🪙</div>
+                            </div>
+                            
+                            <!-- Gold Pack -->
+                            <div class="pack-container" onclick="buyPack('gold', 300)" style="background: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7);">
+                                <div class="pack-title" style="color: #4a3600;">Altin Paket</div>
+                                <div style="font-size: 0.85rem; color: #6a4f00; margin-bottom: 0.5rem;">80 - 89 OVR<br>arasi oyuncular</div>
+                                <div class="pack-price" style="background: rgba(255,255,255,0.5); padding: 5px; border-radius: 5px; color: #332400;">300 🪙</div>
+                            </div>
+                            
+                            <!-- Epic Pack -->
+                            <div class="pack-container" onclick="buyPack('epic', 500)" style="background: linear-gradient(135deg, #ff00cc, #333399); position: relative; overflow: hidden; border: 2px solid #fff;">
+                                <div style="position: absolute; inset: 0; background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet); opacity: 0.3; z-index: 1;"></div>
+                                <div style="position: relative; z-index: 2;">
+                                    <div class="pack-title" style="text-shadow: 0 0 10px #fff;">Epic Paket</div>
+                                    <div style="font-size: 0.85rem; color: #eee; margin-bottom: 0.5rem;">Haftanin en cok reyting<br>yukselten 10 oyuncusu</div>
+                                    <div class="pack-price" style="background: rgba(0,0,0,0.6); padding: 5px; border-radius: 5px; color: #fff;">500 🪙</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Transfer Market Lists -->
-                <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
-                    <!-- Market Listings -->
+                <!-- LIST SUBTAB (TRANSFER MARKET) -->
+                <div id="market-sub-list" class="hidden">
                     <div class="card">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                             <h3 style="margin: 0;"><i class="fa-solid fa-money-bill-transfer"></i> Pazardaki Oyuncular</h3>
@@ -807,9 +828,7 @@
                                         <th>Oyuncu</th>
                                         <th>Mevki</th>
                                         <th>Satici</th>
-                                        <th>Tur</th>
                                         <th>Fiyat (🪙)</th>
-                                        <th>Hedef (Takas)</th>
                                         <th>Islem</th>
                                     </tr>
                                 </thead>
@@ -819,8 +838,56 @@
                         </div>
                     </div>
                 </div>
-            </section>
-            <!-- PLAYER SEARCH SECTION -->
+
+                <!-- SELL SUBTAB -->
+                <div id="market-sub-sell" class="hidden">
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <h3 style="margin: 0;"><i class="fa-solid fa-tags"></i> Envanterinden Oyuncu Sat</h3>
+                        </div>
+                        <p style="color: var(--text-muted); margin-bottom: 1rem;">Sadece draft kadronuzda olmayan (bosta) oyunculari pazara koyabilirsiniz.</p>
+                        <div id="market-sell-inventory-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2D PACK OPENING MODAL -->
+                <div id="pack-opening-modal" class="hidden" style="position: fixed; inset: 0; background: radial-gradient(circle at 50% 35%,#182d72,#070a1d 58%,#02030a); z-index: 3000; display: grid; place-items: center;">
+                    <div style="position: absolute; top: 20px; right: 20px; z-index: 3005;">
+                        <button class="btn btn-secondary" onclick="closePackModal()" style="font-size: 1.2rem; padding: 0.5rem 1rem;"><i class="fa-solid fa-times"></i></button>
+                    </div>
+                    <div class="scene" style="position:relative; display:grid; place-items:center; width: 100%; height: 100%;">
+                        <div class="glow" style="position:absolute; width:420px; height:420px; border-radius:50%; background:radial-gradient(circle,#4bdcff55,transparent 68%); filter:blur(18px);"></div>
+                        
+                        <div class="pack" id="pack-visual" style="width:250px; height:350px; border-radius:24px; position:absolute; display:grid; place-items:center; background:linear-gradient(145deg,#25d4ff,#3348dd 48%,#8c28e5); border:2px solid #b5f4ff; box-shadow:0 0 35px #2bdcffaa,inset 0 0 40px #fff3; z-index:3; cursor: pointer; transition: transform 0.1s;">
+                            <div style="position:absolute; inset:12px; border:1px solid #fff6; border-radius:17px;"></div>
+                            <div class="logo" id="pack-visual-logo" style="font-size:42px; font-weight:900; letter-spacing:5px; text-shadow:0 5px 20px #0008; color: white;">PACK</div>
+                            <small id="pack-visual-small" style="position:absolute; bottom:30px; letter-spacing:4px; opacity:.8; color: white;">CLICK TO OPEN</small>
+                        </div>
+
+                        <!-- Card that pops out -->
+                        <div class="card" id="pack-result-card" style="position:absolute; width:285px; height:405px; padding:18px; border-radius:23px; opacity:0; z-index:5; transform:scale(.1) rotateY(180deg); background:linear-gradient(155deg,#f1fcff,#78d8ff 35%,#3449c8 75%,#171452); border:3px solid #efffff; box-shadow:0 0 45px #4de4ff,0 0 110px #a65cff77;">
+                            <div class="top" style="display:flex; justify-content:space-between;">
+                                <div>
+                                    <div class="rating" id="po-rating" style="font-size:48px; font-weight:900;">94</div>
+                                    <div class="pos" id="po-pos" style="opacity:.75; font-weight:bold;">AMF</div>
+                                </div>
+                                <div class="stars" style="letter-spacing:3px;">★★★★★</div>
+                            </div>
+                            <div class="avatar" style="height:215px; margin:8px 0; border-radius:14px; display:grid; place-items:center; background:linear-gradient(135deg,#fff4,#17256b99); overflow: hidden;">
+                                <img id="po-img" src="" style="width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+                            <div class="name" id="po-name" style="font-size:27px; font-weight:900; text-align: center;">ARDA NOVA</div>
+                            
+                            <!-- Epic Rainbow Overlay -->
+                            <div id="po-epic-border" style="display: none; position: absolute; inset: 0; border: 5px solid transparent; border-image: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet) 1; z-index: 10;"></div>
+                        </div>
+
+                        <div class="flash" id="pack-flash" style="position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:10;"></div>
+                    </div>
+                </div>
+            </section><!-- PLAYER SEARCH SECTION -->
             <section id="epic-search" class="content-section">
                 <div class="card" style="max-width: 600px; margin: 0 auto; text-align: center; padding: 3rem 2rem;">
                     <h2 style="margin-bottom: 1rem; color: var(--accent-gold);"><i class="fa-solid fa-magnifying-glass"></i> Efsanevi Oyuncu Ara</h2>
@@ -1008,7 +1075,7 @@
 
     <!-- NOTIFICATION TOAST -->
     <div id="notification-toast" class="toast hidden"></div>
-    <script src="app.js?v=56"></script>
+    <script src="app.js?v=57"></script>
 </body>
 </html>
 

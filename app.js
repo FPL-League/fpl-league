@@ -5464,3 +5464,468 @@ function finishDraftMatch(home, away) {
 window.closeMatchOverlay = function() {
     document.getElementById("draft-match-overlay").classList.add("hidden");
 }
+
+// --- NEW MARKET LOGIC ---
+
+window.switchMarketTab = function(tabId) {
+    document.getElementById("market-sub-packs").classList.add("hidden");
+    document.getElementById("market-sub-list").classList.add("hidden");
+    document.getElementById("market-sub-sell").classList.add("hidden");
+    
+    document.getElementById("tab-market-packs").className = "btn btn-secondary";
+    document.getElementById("tab-market-list").className = "btn btn-secondary";
+    document.getElementById("tab-market-sell").className = "btn btn-secondary";
+    
+    document.getElementById("market-sub-" + tabId).classList.remove("hidden");
+    document.getElementById("tab-market-" + tabId).className = "btn btn-primary";
+    
+    if (tabId === 'list' || tabId === 'sell') {
+        renderMarket(); // Ensure table and inventory are updated
+    }
+}
+
+// Override existing renderMarket
+window.renderMarket = function() {
+    if (!state.currentUser) return;
+
+    // 1. Render Transfer Market (List)
+    const marketTable = document.getElementById("transfer-market-list");
+    if (marketTable) {
+        if (!state.marketListings || state.marketListings.length === 0) {
+            marketTable.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem;">Pazarda oyuncu yok.</td></tr>`;
+        } else {
+            marketTable.innerHTML = state.marketListings.map(lst => {
+                const p = state.players.find(x => x.id === lst.playerId);
+                if(!p) return "";
+                const ovr = getPlayerOVR(p);
+                return `
+                    <tr>
+                        <td style="display:flex; align-items:center; gap:0.5rem;">
+                            <img src="${p.avatar || 'https://via.placeholder.com/40'}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">
+                            <strong>${p.name}</strong> (${ovr} OVR)
+                        </td>
+                        <td>${p.position.toUpperCase()}</td>
+                        <td>${lst.seller}</td>
+                        <td style="color:var(--accent-gold); font-weight:bold;">${lst.price} 🪙</td>
+                        <td>
+                            ${lst.seller === state.currentUser.username ? 
+                                `<button class="btn btn-secondary btn-sm" onclick="cancelMarketListing('${lst.id}')">Iptal Et</button>` : 
+                                `<button class="btn btn-primary btn-sm" onclick="buyPlayerFromMarket('${lst.id}')">Satin Al</button>`
+                            }
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+        }
+    }
+
+    // 2. Render Sell Inventory
+    const sellContainer = document.getElementById("market-sell-inventory-list");
+    if (sellContainer) {
+        const myInv = state.currentUser.inventory || [];
+        // drafted => obj.values gives player objects. Extract IDs if not null.
+        let draftedIds = [];
+        if (state.draftSquad) {
+            draftedIds = Object.values(state.draftSquad).filter(x => x !== null).map(x => x.id);
+        }
+        const listed = (state.marketListings || []).map(x => x.playerId);
+        
+        // Sadece envanterde olan, draftta olmayan ve pazarda olmayanlar
+        const availableToSell = state.players.filter(p => myInv.includes(p.id) && !draftedIds.includes(p.id) && !listed.includes(p.id));
+        
+        if (availableToSell.length === 0) {
+            sellContainer.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; color:var(--text-muted);">Satilabilir oyuncunuz bulunmuyor. Draft kadronuzdaki oyunculari once kadrodan cikarmalisiniz.</div>`;
+        } else {
+            sellContainer.innerHTML = availableToSell.map(p => {
+                const ovr = getPlayerOVR(p);
+                return `
+                <div style="background:var(--surface-light); padding:1rem; border-radius:8px; text-align:center;">
+                    <img src="${p.avatar || 'https://via.placeholder.com/60'}" style="width:60px;height:60px;border-radius:50%;object-fit:cover; margin-bottom:0.5rem;">
+                    <div style="font-weight:bold;">${p.name}</div>
+                    <div style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1rem;">${p.position.toUpperCase()} - ${ovr} OVR</div>
+                    <div style="display:flex; gap:0.5rem;">
+                        <input type="number" id="sell-price-${p.id}" placeholder="Fiyat" style="width:70px; padding:0.2rem; border-radius:4px; border:1px solid #444; background:#111; color:#fff;" min="10">
+                        <button class="btn btn-primary btn-sm" onclick="listPlayerOnMarket('${p.id}')">Sat</button>
+                    </div>
+                </div>
+                `;
+            }).join("");
+        }
+    }
+}
+
+window.listPlayerOnMarket = function(playerId) {
+    const priceInput = document.getElementById(`sell-price-` + playerId);
+    const price = parseInt(priceInput.value);
+    
+    if (isNaN(price) || price < 10) {
+        alert("Gecerli bir fiyat girin (En az 10 coin).");
+        return;
+    }
+    
+    if (!state.marketListings) state.marketListings = [];
+    state.marketListings.push({
+        id: "lst_" + Date.now(),
+        playerId: playerId,
+        seller: state.currentUser.username,
+        price: price,
+        timestamp: Date.now()
+    });
+    
+    saveDatabase();
+    alert("Oyuncu pazara eklendi.");
+    renderMarket();
+}
+
+window.cancelMarketListing = function(listingId) {
+    state.marketListings = state.marketListings.filter(x => x.id !== listingId);
+    saveDatabase();
+    renderMarket();
+}
+
+// --- PACK LOGIC & ANIMATION ---
+
+function getTopValueGainers() {
+    // Epic pack calculates top 10 value gainers
+    let gainers = [];
+    state.players.forEach(p => {
+        if (!p.valueHistory || p.valueHistory.length < 2) return;
+        const current = p.valueHistory[p.valueHistory.length - 1].value;
+        const first = p.valueHistory[0].value;
+        gainers.push({ player: p, diff: current - first });
+    });
+    
+    gainers.sort((a,b) => b.diff - a.diff);
+    return gainers.slice(0, 10).map(g => g.player);
+}
+
+window.buyPack = function(type, price) {
+    if (!state.currentUser) {
+        alert("Paket acmak icin once giris yapin.");
+        return;
+    }
+    
+    if (state.currentUser.coins < price) {
+        alert(`Bu paket icin ${price} coine ihtiyaciniz var! Sizin coin: ${state.currentUser.coins || 0}`);
+        return;
+    }
+    
+    // Pick player based on type
+    let pool = [];
+    if (type === 'bronze') {
+        pool = state.players.filter(p => getPlayerOVR(p) <= 69);
+    } else if (type === 'silver') {
+        pool = state.players.filter(p => { const o = getPlayerOVR(p); return o >= 70 && o <= 79; });
+    } else if (type === 'gold') {
+        pool = state.players.filter(p => { const o = getPlayerOVR(p); return o >= 80 && o <= 89; });
+    } else if (type === 'epic') {
+        pool = getTopValueGainers();
+        if(pool.length === 0) pool = state.players.filter(p => getPlayerOVR(p) >= 85); // fallback
+    }
+    
+    if (pool.length === 0) {
+        alert("Sistemde bu pakete uygun oyuncu bulunamadi.");
+        return;
+    }
+    
+    // Deduct coins
+    state.currentUser.coins -= price;
+    document.getElementById("nav-coins").innerText = state.currentUser.coins;
+    
+    // Random player from pool
+    const selectedPlayer = pool[Math.floor(Math.random() * pool.length)];
+    
+    // Add to inventory
+    if (!state.currentUser.inventory) state.currentUser.inventory = [];
+    if (!state.currentUser.inventory.includes(selectedPlayer.id)) {
+        state.currentUser.inventory.push(selectedPlayer.id);
+        saveDatabase();
+    } else {
+        saveDatabase(); // Save coin deduction anyway
+        // To do: handle duplicates (maybe refund or sell automatically) - for now just skip adding
+    }
+    
+    // Show Animation Modal
+    const modal = document.getElementById("pack-opening-modal");
+    modal.classList.remove("hidden");
+    
+    // Reset visual classes
+    const pVisual = document.getElementById("pack-visual");
+    const pCard = document.getElementById("pack-result-card");
+    const flash = document.getElementById("pack-flash");
+    const logo = document.getElementById("pack-visual-logo");
+    
+    pVisual.classList.remove("pack-shake", "pack-open");
+    pCard.classList.remove("card-show");
+    flash.classList.remove("pack-flash-on");
+    
+    // Set Pack Logo Text based on pack
+    logo.innerText = type.toUpperCase();
+    
+    // Bind click to animate
+    pVisual.onclick = function() {
+        if (pVisual.dataset.busy) return;
+        pVisual.dataset.busy = "1";
+        document.getElementById("pack-visual-small").innerText = "ACILIYOR...";
+        pVisual.classList.add("pack-shake");
+        
+        setTimeout(() => {
+            pVisual.classList.remove("pack-shake");
+            pVisual.classList.add("pack-open");
+            flash.classList.add("pack-flash-on");
+            
+            // Set Card Info
+            document.getElementById("po-rating").innerText = getPlayerOVR(selectedPlayer);
+            document.getElementById("po-pos").innerText = selectedPlayer.position.substring(0,3).toUpperCase();
+            document.getElementById("po-name").innerText = selectedPlayer.name.toUpperCase();
+            document.getElementById("po-img").src = selectedPlayer.avatar || 'https://via.placeholder.com/200';
+            
+            const epicBorder = document.getElementById("po-epic-border");
+            if (type === 'epic') epicBorder.style.display = "block";
+            else epicBorder.style.display = "none";
+            
+        }, 850);
+        
+        setTimeout(() => {
+            pCard.classList.add("card-show");
+            pVisual.dataset.busy = "";
+        }, 1250);
+    };
+}
+
+window.closePackModal = function() {
+    document.getElementById("pack-opening-modal").classList.add("hidden");
+}
+// --- NEW MARKET LOGIC ---
+
+window.switchMarketTab = function(tabId) {
+    document.getElementById("market-sub-packs").classList.add("hidden");
+    document.getElementById("market-sub-list").classList.add("hidden");
+    document.getElementById("market-sub-sell").classList.add("hidden");
+    
+    document.getElementById("tab-market-packs").className = "btn btn-secondary";
+    document.getElementById("tab-market-list").className = "btn btn-secondary";
+    document.getElementById("tab-market-sell").className = "btn btn-secondary";
+    
+    document.getElementById("market-sub-" + tabId).classList.remove("hidden");
+    document.getElementById("tab-market-" + tabId).className = "btn btn-primary";
+    
+    if (tabId === 'list' || tabId === 'sell') {
+        renderMarket(); // Ensure table and inventory are updated
+    }
+}
+
+// Override existing renderMarket
+window.renderMarket = function() {
+    if (!state.currentUser) return;
+
+    // 1. Render Transfer Market (List)
+    const marketTable = document.getElementById("transfer-market-list");
+    if (marketTable) {
+        if (!state.marketListings || state.marketListings.length === 0) {
+            marketTable.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem;">Pazarda oyuncu yok.</td></tr>`;
+        } else {
+            marketTable.innerHTML = state.marketListings.map(lst => {
+                const p = state.players.find(x => x.id === lst.playerId);
+                if(!p) return "";
+                const ovr = getPlayerOVR(p);
+                return `
+                    <tr>
+                        <td style="display:flex; align-items:center; gap:0.5rem;">
+                            <img src="${p.avatar || 'https://via.placeholder.com/40'}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">
+                            <strong>${p.name}</strong> (${ovr} OVR)
+                        </td>
+                        <td>${p.position.toUpperCase()}</td>
+                        <td>${lst.seller}</td>
+                        <td style="color:var(--accent-gold); font-weight:bold;">${lst.price} 🪙</td>
+                        <td>
+                            ${lst.seller === state.currentUser.username ? 
+                                `<button class="btn btn-secondary btn-sm" onclick="cancelMarketListing('${lst.id}')">Iptal Et</button>` : 
+                                `<button class="btn btn-primary btn-sm" onclick="buyPlayerFromMarket('${lst.id}')">Satin Al</button>`
+                            }
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+        }
+    }
+
+    // 2. Render Sell Inventory
+    const sellContainer = document.getElementById("market-sell-inventory-list");
+    if (sellContainer) {
+        const myInv = state.currentUser.inventory || [];
+        // drafted => obj.values gives player objects. Extract IDs if not null.
+        let draftedIds = [];
+        if (state.draftSquad) {
+            draftedIds = Object.values(state.draftSquad).filter(x => x !== null).map(x => x.id);
+        }
+        const listed = (state.marketListings || []).map(x => x.playerId);
+        
+        // Sadece envanterde olan, draftta olmayan ve pazarda olmayanlar
+        const availableToSell = state.players.filter(p => myInv.includes(p.id) && !draftedIds.includes(p.id) && !listed.includes(p.id));
+        
+        if (availableToSell.length === 0) {
+            sellContainer.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; color:var(--text-muted);">Satilabilir oyuncunuz bulunmuyor. Draft kadronuzdaki oyunculari once kadrodan cikarmalisiniz.</div>`;
+        } else {
+            sellContainer.innerHTML = availableToSell.map(p => {
+                const ovr = getPlayerOVR(p);
+                return `
+                <div style="background:var(--surface-light); padding:1rem; border-radius:8px; text-align:center;">
+                    <img src="${p.avatar || 'https://via.placeholder.com/60'}" style="width:60px;height:60px;border-radius:50%;object-fit:cover; margin-bottom:0.5rem;">
+                    <div style="font-weight:bold;">${p.name}</div>
+                    <div style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1rem;">${p.position.toUpperCase()} - ${ovr} OVR</div>
+                    <div style="display:flex; gap:0.5rem;">
+                        <input type="number" id="sell-price-${p.id}" placeholder="Fiyat" style="width:70px; padding:0.2rem; border-radius:4px; border:1px solid #444; background:#111; color:#fff;" min="10">
+                        <button class="btn btn-primary btn-sm" onclick="listPlayerOnMarket('${p.id}')">Sat</button>
+                    </div>
+                </div>
+                `;
+            }).join("");
+        }
+    }
+}
+
+window.listPlayerOnMarket = function(playerId) {
+    const priceInput = document.getElementById(`sell-price-` + playerId);
+    const price = parseInt(priceInput.value);
+    
+    if (isNaN(price) || price < 10) {
+        alert("Gecerli bir fiyat girin (En az 10 coin).");
+        return;
+    }
+    
+    if (!state.marketListings) state.marketListings = [];
+    state.marketListings.push({
+        id: "lst_" + Date.now(),
+        playerId: playerId,
+        seller: state.currentUser.username,
+        price: price,
+        timestamp: Date.now()
+    });
+    
+    saveDatabase();
+    alert("Oyuncu pazara eklendi.");
+    renderMarket();
+}
+
+window.cancelMarketListing = function(listingId) {
+    state.marketListings = state.marketListings.filter(x => x.id !== listingId);
+    saveDatabase();
+    renderMarket();
+}
+
+// --- PACK LOGIC & ANIMATION ---
+
+function getTopValueGainers() {
+    // Epic pack calculates top 10 value gainers
+    let gainers = [];
+    state.players.forEach(p => {
+        if (!p.valueHistory || p.valueHistory.length < 2) return;
+        const current = p.valueHistory[p.valueHistory.length - 1].value;
+        const first = p.valueHistory[0].value;
+        gainers.push({ player: p, diff: current - first });
+    });
+    
+    gainers.sort((a,b) => b.diff - a.diff);
+    return gainers.slice(0, 10).map(g => g.player);
+}
+
+window.buyPack = function(type, price) {
+    if (!state.currentUser) {
+        alert("Paket acmak icin once giris yapin.");
+        return;
+    }
+    
+    if (state.currentUser.coins < price) {
+        alert(`Bu paket icin ${price} coine ihtiyaciniz var! Sizin coin: ${state.currentUser.coins || 0}`);
+        return;
+    }
+    
+    // Pick player based on type
+    let pool = [];
+    if (type === 'bronze') {
+        pool = state.players.filter(p => getPlayerOVR(p) <= 69);
+    } else if (type === 'silver') {
+        pool = state.players.filter(p => { const o = getPlayerOVR(p); return o >= 70 && o <= 79; });
+    } else if (type === 'gold') {
+        pool = state.players.filter(p => { const o = getPlayerOVR(p); return o >= 80 && o <= 89; });
+    } else if (type === 'epic') {
+        pool = getTopValueGainers();
+        if(pool.length === 0) pool = state.players.filter(p => getPlayerOVR(p) >= 85); // fallback
+    }
+    
+    if (pool.length === 0) {
+        alert("Sistemde bu pakete uygun oyuncu bulunamadi.");
+        return;
+    }
+    
+    // Deduct coins
+    state.currentUser.coins -= price;
+    document.getElementById("nav-coins").innerText = state.currentUser.coins;
+    
+    // Random player from pool
+    const selectedPlayer = pool[Math.floor(Math.random() * pool.length)];
+    
+    // Add to inventory
+    if (!state.currentUser.inventory) state.currentUser.inventory = [];
+    if (!state.currentUser.inventory.includes(selectedPlayer.id)) {
+        state.currentUser.inventory.push(selectedPlayer.id);
+        saveDatabase();
+    } else {
+        saveDatabase(); // Save coin deduction anyway
+        // To do: handle duplicates (maybe refund or sell automatically) - for now just skip adding
+    }
+    
+    // Show Animation Modal
+    const modal = document.getElementById("pack-opening-modal");
+    modal.classList.remove("hidden");
+    
+    // Reset visual classes
+    const pVisual = document.getElementById("pack-visual");
+    const pCard = document.getElementById("pack-result-card");
+    const flash = document.getElementById("pack-flash");
+    const logo = document.getElementById("pack-visual-logo");
+    const label = document.getElementById("pack-visual-small");
+    
+    pVisual.classList.remove("pack-shake", "pack-open");
+    pCard.classList.remove("card-show");
+    flash.classList.remove("pack-flash-on");
+    pVisual.dataset.busy = "";
+    
+    // Set Pack Logo Text based on pack
+    logo.innerText = type.toUpperCase();
+    label.innerText = "TIKLA VE AC";
+    
+    // Bind click to animate
+    pVisual.onclick = function() {
+        if (pVisual.dataset.busy === "1") return;
+        pVisual.dataset.busy = "1";
+        label.innerText = "ACILIYOR...";
+        pVisual.classList.add("pack-shake");
+        
+        setTimeout(() => {
+            pVisual.classList.remove("pack-shake");
+            pVisual.classList.add("pack-open");
+            flash.classList.add("pack-flash-on");
+            
+            // Set Card Info
+            document.getElementById("po-rating").innerText = getPlayerOVR(selectedPlayer);
+            document.getElementById("po-pos").innerText = selectedPlayer.position.substring(0,3).toUpperCase();
+            document.getElementById("po-name").innerText = selectedPlayer.name.toUpperCase();
+            document.getElementById("po-img").src = selectedPlayer.avatar || 'https://via.placeholder.com/200';
+            
+            const epicBorder = document.getElementById("po-epic-border");
+            if (type === 'epic') epicBorder.style.display = "block";
+            else epicBorder.style.display = "none";
+            
+        }, 850);
+        
+        setTimeout(() => {
+            pCard.classList.add("card-show");
+        }, 1250);
+    };
+}
+
+window.closePackModal = function() {
+    document.getElementById("pack-opening-modal").classList.add("hidden");
+}
