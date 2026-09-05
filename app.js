@@ -3788,11 +3788,11 @@ window.switchTab = function(targetSectionId) {
         case "draft":
             titleEl.innerText = "Altın Draft & Battle";
             subEl.innerText = "Kendi envanterinizden 5 kişilik kadro kurun ve savaşa katılın.";
-            break;
+            try { if(targetSectionId==='draft') renderDraft(); else if(targetSectionId==='market') renderMarket(); } catch(e){} break;
         case "market":
             titleEl.innerText = "Mağaza & Pazar";
             subEl.innerText = "Paket açın, oyuncu alın/satın veya diğer oyuncularla takas yapın.";
-            break;
+            try { if(targetSectionId==='draft') renderDraft(); else if(targetSectionId==='market') renderMarket(); } catch(e){} break;
         case "chat":
             titleEl.innerText = "Canlı Sohbet";
             subEl.innerText = "Ligdeki diğer oyuncularla gerçek zamanlı mesajlaşın.";
