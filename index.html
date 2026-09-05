@@ -672,37 +672,46 @@
                         </div>
 
                         <!-- Squad Builder Pitch -->
-                        <div class="draft-pitch">
+                                                <div class="draft-pitch">
                             <div class="pitch-line pitch-line-top"></div>
                             <div class="pitch-line pitch-line-bottom"></div>
                             <div class="pitch-line pitch-center-circle"></div>
                             <div class="pitch-line pitch-center-line"></div>
                             
+                            <!-- 2 Forwards (Left and Right) -->
+                            <div class="draft-row" style="gap: 120px;">
+                                <div id="slot-fwd1" class="draft-slot">
+                                    <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>S. FORVET</span></div>
+                                </div>
+                                <div id="slot-fwd2" class="draft-slot">
+                                    <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>S. FORVET</span></div>
+                                </div>
+                            </div>
+                            
+                            <!-- 1 Midfielder (Center) -->
                             <div class="draft-row">
-                                <div id="slot-fwd" class="draft-slot">
-                                    <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>FORVET</span></div>
+                                <div id="slot-mid" class="draft-slot">
+                                    <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>ORTA SAHA</span></div>
                                 </div>
                             </div>
-                            <div class="draft-row" style="gap: 80px;">
-                                <div id="slot-mid1" class="draft-slot">
-                                    <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>SOL ORTA</span></div>
+                            
+                            <!-- 2 Defenders (Left and Right) -->
+                            <div class="draft-row" style="gap: 100px;">
+                                <div id="slot-def1" class="draft-slot">
+                                    <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>S. DEFANS</span></div>
                                 </div>
-                                <div id="slot-mid2" class="draft-slot">
-                                    <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>SAG ORTA</span></div>
-                                </div>
-                            </div>
-                            <div class="draft-row">
-                                <div id="slot-def" class="draft-slot">
-                                    <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>DEFANS</span></div>
+                                <div id="slot-def2" class="draft-slot">
+                                    <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>S. DEFANS</span></div>
                                 </div>
                             </div>
+                            
+                            <!-- 1 Goalkeeper (Center) -->
                             <div class="draft-row">
                                 <div id="slot-gk" class="draft-slot">
                                     <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>KALECI</span></div>
                                 </div>
                             </div>
                         </div>
-                        
                         <div class="draft-metrics-overlay">
                             <div class="draft-metric-box">
                                 <span class="metric-label">TAKIM REYTINGI</span>
@@ -1075,7 +1084,7 @@
 
     <!-- NOTIFICATION TOAST -->
     <div id="notification-toast" class="toast hidden"></div>
-    <script src="app.js?v=58"></script>
+    <script src="app.js?v=59"></script>
 </body>
 </html>
 

@@ -1871,11 +1871,12 @@ function drawValueChart(history) {
 // --- DRAFT WORKSPACE (Inventory Restricted) ---
 function renderDraft() {
     const slots = [
-        { id: "slot-gk", key: "kaleci", label: "KALECİ" },
-        { id: "slot-def", key: "defans", label: "DEFANS" },
-        { id: "slot-mid1", key: "orta_saha_1", label: "SOL ORTA" },
-        { id: "slot-mid2", key: "orta_saha_2", label: "SAĞ ORTA" },
-        { id: "slot-fwd", key: "forvet", label: "FORVET" }
+        { id: "slot-gk", key: "kaleci", label: "KALECI", position: "kaleci" },
+        { id: "slot-def1", key: "defans1", label: "SOL DEF", position: "defans" },
+        { id: "slot-def2", key: "defans2", label: "SAG DEF", position: "defans" },
+        { id: "slot-mid", key: "orta", label: "ORTA SAHA", position: "orta_saha" },
+        { id: "slot-fwd1", key: "forvet1", label: "SOL FORVET", position: "forvet" },
+        { id: "slot-fwd2", key: "forvet2", label: "SAG FORVET", position: "forvet" }
     ];
 
     slots.forEach(slot => {
@@ -2041,7 +2042,7 @@ function startBattle(forcedOpponentUser = null) {
         }
 
         const oppSquadArray = forcedOpponentUser.draftSquad ? Object.values(forcedOpponentUser.draftSquad).filter(p => p !== null) : [];
-        if (oppSquadArray.length === 5) {
+        if (oppSquadArray.length === 6) {
             const matchedOvr = Math.round(oppSquadArray.reduce((acc, p) => acc + getPlayerOVR(p), 0) / 5);
             const teamCounts = {};
             oppSquadArray.forEach(p => {
@@ -2076,7 +2077,7 @@ function startBattle(forcedOpponentUser = null) {
             }
 
             const oppSquadArray = matchedUser.draftSquad ? Object.values(matchedUser.draftSquad).filter(p => p !== null) : [];
-            if (oppSquadArray.length === 5) {
+            if (oppSquadArray.length === 6) {
                 const matchedOvr = Math.round(oppSquadArray.reduce((acc, p) => acc + getPlayerOVR(p), 0) / 5);
                 const teamCounts = {};
                 oppSquadArray.forEach(p => {
@@ -3469,19 +3470,26 @@ function initEventHandlers() {
 
     const slotGk = document.getElementById("slot-gk");
     if (slotGk) slotGk.onclick = () => openDraftSelection("kaleci", "kaleci");
-    const slotDef = document.getElementById("slot-def");
-    if (slotDef) slotDef.onclick = () => openDraftSelection("defans", "defans");
-    const slotMid1 = document.getElementById("slot-mid1");
-    if (slotMid1) slotMid1.onclick = () => openDraftSelection("orta_saha_1", "orta_saha");
-    const slotMid2 = document.getElementById("slot-mid2");
-    if (slotMid2) slotMid2.onclick = () => openDraftSelection("orta_saha_2", "orta_saha");
-    const slotFwd = document.getElementById("slot-fwd");
-    if (slotFwd) slotFwd.onclick = () => openDraftSelection("forvet", "forvet");
+    
+    const slotDef1 = document.getElementById("slot-def1");
+    if (slotDef1) slotDef1.onclick = () => openDraftSelection("defans1", "defans");
+    
+    const slotDef2 = document.getElementById("slot-def2");
+    if (slotDef2) slotDef2.onclick = () => openDraftSelection("defans2", "defans");
+    
+    const slotMid = document.getElementById("slot-mid");
+    if (slotMid) slotMid.onclick = () => openDraftSelection("orta", "orta_saha");
+    
+    const slotFwd1 = document.getElementById("slot-fwd1");
+    if (slotFwd1) slotFwd1.onclick = () => openDraftSelection("forvet1", "forvet");
+    
+    const slotFwd2 = document.getElementById("slot-fwd2");
+    if (slotFwd2) slotFwd2.onclick = () => openDraftSelection("forvet2", "forvet");
 
     const resetDraftBtn = document.getElementById("reset-draft-btn");
     if (resetDraftBtn) {
         resetDraftBtn.onclick = () => {
-            state.draftSquad = { kaleci: null, defans: null, orta_saha_1: null, orta_saha_2: null, forvet: null };
+            state.draftSquad = { kaleci: null, defans1: null, defans2: null, orta: null, forvet1: null, forvet2: null };
             document.getElementById("draft-selection-panel").classList.add("hidden");
             renderDraft();
         };
@@ -5248,8 +5256,8 @@ function startDraftMatch(opponentUid) {
     if (!state.currentUser) { alert("Once giris yapin."); return; }
     
     const mySquad = Object.values(state.draftSquad).filter(p => p !== null);
-    if (mySquad.length < 5) {
-        alert("Maca baslamak icin kadronuzdaki 5 slota da oyuncu yerlestirmelisiniz!");
+    if (mySquad.length < 6) {
+        alert("Maca baslamak icin kadronuzdaki 6 slota da oyuncu yerlestirmelisiniz!");
         return;
     }
 
@@ -5266,15 +5274,15 @@ function startDraftMatch(opponentUid) {
     let oppSquadArray = [];
     if (opponent.draftSquad) {
         oppSquadArray = Object.values(opponent.draftSquad).filter(p => p !== null);
-        if (oppSquadArray.length === 5) {
+        if (oppSquadArray.length === 6) {
             const oppOvr = Math.round(oppSquadArray.reduce((acc, p) => acc + getPlayerOVR(p), 0) / 5);
             oppPower = oppOvr + 10; // mock chem
         }
     }
     
     // If opponent doesn't have 5 players, fill with generic starters
-    if (oppSquadArray.length < 5) {
-        oppSquadArray = state.players.filter(p => p.username === opponent.username).slice(0, 5);
+    if (oppSquadArray.length < 6) {
+        oppSquadArray = state.players.filter(p => p.username === opponent.username).slice(0, 6);
     }
 
     // Open Overlay
