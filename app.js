@@ -1,4 +1,4 @@
-﻿// ==========================================================================
+// ==========================================================================
 // FPL Ultimate Market, Packs and Economy - Core Application JS
 // ==========================================================================
 
@@ -229,6 +229,46 @@ function loadDatabase() {
             if (!snapshot.exists()) return;
             // If _suppressFirebaseRender is set, only skip renderAll (not state update)
             const data = snapshot.val();
+            
+            // Auto-inject Starter Players
+            let pList = data.players || [];
+            const starters = [
+                { id: "starter_lorenzo_1", name: "Lorenzo 1", username: "system", isStarter: true, position: "kaleci", ratings: {sho:50,pas:50,pac:50,def:50,phy:50,dri:50}, value: 100 },
+                { id: "starter_lorenzo_2", name: "Lorenzo 2", username: "system", isStarter: true, position: "defans", ratings: {sho:50,pas:50,pac:50,def:50,phy:50,dri:50}, value: 100 },
+                { id: "starter_lorenzo_3", name: "Lorenzo 3", username: "system", isStarter: true, position: "defans", ratings: {sho:50,pas:50,pac:50,def:50,phy:50,dri:50}, value: 100 },
+                { id: "starter_lorenzo_4", name: "Lorenzo 4", username: "system", isStarter: true, position: "orta_saha", ratings: {sho:50,pas:50,pac:50,def:50,phy:50,dri:50}, value: 100 },
+                { id: "starter_lorenzo_5", name: "Lorenzo 5", username: "system", isStarter: true, position: "forvet", ratings: {sho:50,pas:50,pac:50,def:50,phy:50,dri:50}, value: 100 },
+                { id: "starter_lorenzo_6", name: "Lorenzo 6", username: "system", isStarter: true, position: "forvet", ratings: {sho:50,pas:50,pac:50,def:50,phy:50,dri:50}, value: 100 }
+            ];
+            
+            let missingStarters = false;
+            starters.forEach(s => {
+                if (!pList.find(x => x.id === s.id)) {
+                    pList.push(s);
+                    missingStarters = true;
+                }
+            });
+            data.players = pList;
+
+            let uList = data.users || [];
+            const sIds = starters.map(s => s.id);
+            let updatedUsers = false;
+            uList.forEach(u => {
+                if (!u.inventory) u.inventory = [];
+                sIds.forEach(id => {
+                    if (!u.inventory.includes(id)) {
+                        u.inventory.push(id);
+                        updatedUsers = true;
+                    }
+                });
+            });
+            data.users = uList;
+
+            // Auto-save if injected (to sync with Firebase immediately)
+            if (missingStarters || updatedUsers) {
+                setTimeout(() => { saveDatabase(); }, 3000);
+            }
+
             state.isLoaded = true;
             if (data && data.users) {
                 state.users = data.users || [];
