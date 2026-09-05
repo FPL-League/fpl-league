@@ -5369,120 +5369,193 @@ function startDraftMatch(opponentUid) {
     const totalPower = myPower + oppPower;
     const myWinChance = myPower / totalPower;
 
-    // Initialize 2D Match entities (Players)
+    // Initialize 2D Match entities (Players) - FIXED POSITIONS
     const entities = [];
     
-    // Helper to load image for card rendering
-    function getCardImage(player) {
-        const img = new Image();
-        img.src = player.avatar || 'https://via.placeholder.com/40';
-        return img;
+    // Fixed positions for 1-2-1-2 formation
+    // Home team (left side): GK=80, DEF=200, MID=320, FWD=400
+    // Away team (right side): GK=720, DEF=600, MID=480, FWD=400
+    function getFixedPositions(squad, team) {
+        const result = [];
+        const isHome = team === 'home';
+        const sorted = {kaleci:[], defans:[], orta_saha:[], forvet:[]};
+        squad.forEach(p => {
+            const pos = p.position || 'forvet';
+            if (sorted[pos]) sorted[pos].push(p);
+            else sorted.forvet.push(p);
+        });
+        
+        // GK
+        sorted.kaleci.forEach(p => {
+            result.push({team, player:p, x: isHome ? 60 : 740, y: 250});
+        });
+        // DEF
+        sorted.defans.forEach((p, i) => {
+            const ySpread = sorted.defans.length === 1 ? [250] : [160, 340];
+            result.push({team, player:p, x: isHome ? 180 : 620, y: ySpread[i] || 250});
+        });
+        // MID
+        sorted.orta_saha.forEach(p => {
+            result.push({team, player:p, x: isHome ? 300 : 500, y: 250});
+        });
+        // FWD
+        sorted.forvet.forEach((p, i) => {
+            const ySpread = sorted.forvet.length === 1 ? [250] : [160, 340];
+            result.push({team, player:p, x: isHome ? 380 : 420, y: ySpread[i] || 250});
+        });
+        return result;
     }
+    
+    getFixedPositions(mySquad, 'home').forEach(e => entities.push(e));
+    getFixedPositions(oppSquadArray, 'away').forEach(e => entities.push(e));
 
-    // Home Team (Left side)
-    mySquad.forEach((p, i) => {
-        entities.push({
-            team: 'home', player: p, img: getCardImage(p),
-            x: 100 + Math.random()*200, y: 50 + (i * 80),
-            vx: 0, vy: 0, targetX: 400, targetY: 250
-        });
-    });
-
-    // Away Team (Right side)
-    oppSquadArray.forEach((p, i) => {
-        entities.push({
-            team: 'away', player: p, img: getCardImage(p),
-            x: 700 - Math.random()*200, y: 50 + (i * 80),
-            vx: 0, vy: 0, targetX: 400, targetY: 250
-        });
-    });
-
-    const ball = { x: 400, y: 250, vx: 0, vy: 0 };
+    const ball = { x: 400, y: 250, vx: 0, vy: 0, targetX: 400, targetY: 250 };
+    let ballHolder = null;
 
     function drawMiniCard(ctx, entity) {
-        ctx.save();
-        // Draw card background
-        ctx.fillStyle = entity.team === 'home' ? '#1a2a6c' : '#b21f1f'; // Blue for home, Red for away
-        ctx.beginPath();
-        ctx.roundRect(entity.x - 20, entity.y - 30, 40, 60, 5);
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = entity.team === 'home' ? '#4de4ff' : '#ff4d4d';
-        ctx.stroke();
-
-        // Draw Player Image
-        if (entity.img.complete) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(entity.x, entity.y - 10, 15, 0, Math.PI * 2);
-            ctx.clip();
-            ctx.drawImage(entity.img, entity.x - 15, entity.y - 25, 30, 30);
-            ctx.restore();
-        }
-
-        // Draw OVR
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 12px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(getPlayerOVR(entity.player), entity.x, entity.y + 15);
+        const ovr = getPlayerOVR(entity.player);
+        const cardClass = getCardClass(ovr);
         
-        // Draw position
-        ctx.font = "8px Arial";
-        ctx.fillStyle = "rgba(255,255,255,0.7)";
-        ctx.fillText(entity.player.position.substring(0,3).toUpperCase(), entity.x, entity.y + 25);
+        let cardFill, cardBorder, textCol;
+        if (cardClass === 'gold') {
+            cardFill = '#b8860b'; cardBorder = '#ffd700'; textCol = '#3b2300';
+        } else if (cardClass === 'silver') {
+            cardFill = '#888'; cardBorder = '#e0e0e0'; textCol = '#222';
+        } else if (cardClass === 'epic') {
+            cardFill = '#6c3bbf'; cardBorder = '#a855f7'; textCol = '#fff';
+        } else {
+            cardFill = '#7c4714'; cardBorder = '#cd7f32'; textCol = '#ffdcb0';
+        }
+        
+        const sideColor = entity.team === 'home' ? '#4de4ff' : '#ff4d4d';
+        
+        ctx.save();
+        // Card body
+        ctx.beginPath();
+        ctx.roundRect(entity.x - 22, entity.y - 32, 44, 64, 6);
+        ctx.fillStyle = cardFill;
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = cardBorder;
+        ctx.stroke();
+        
+        // Team stripe at top
+        ctx.fillStyle = sideColor;
+        ctx.beginPath();
+        ctx.roundRect(entity.x - 22, entity.y - 32, 44, 7, [6, 6, 0, 0]);
+        ctx.fill();
+
+        // Player silhouette circle
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath();
+        ctx.arc(entity.x, entity.y - 10, 13, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // OVR top-left
+        ctx.fillStyle = textCol;
+        ctx.font = "bold 11px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(ovr, entity.x, entity.y + 8);
+        
+        // Position
+        ctx.font = "7px Arial";
+        ctx.fillText(entity.player.position === "orta_saha" ? "ORT" : entity.player.position.substring(0,3).toUpperCase(), entity.x, entity.y + 18);
+        
+        // Name below card
+        ctx.fillStyle = '#fff';
+        ctx.font = "bold 7px Arial";
+        var nm = entity.player.name ? entity.player.name.substring(0,9).toUpperCase() : "???";
+        ctx.fillText(nm, entity.x, entity.y + 42);
         
         ctx.restore();
     }
 
-    draftMatchInterval = setInterval(() => {
+    // Pick a random entity near the ball to be "active"
+    function pickNewTarget() {
+        var side = Math.random() < 0.5 ? 'home' : 'away';
+        var teamEnts = entities.filter(function(e) { return e.team === side; });
+        var target = teamEnts[Math.floor(Math.random() * teamEnts.length)];
+        if (target) {
+            ball.targetX = target.x;
+            ball.targetY = target.y;
+            ballHolder = target;
+        }
+    }
+    
+    pickNewTarget();
+    var ticksSincePass = 0;
+
+    draftMatchInterval = setInterval(function() {
         time++;
+        ticksSincePass++;
         
         // Clear canvas
         ctx.fillStyle = "#2a5a3b";
         ctx.fillRect(0, 0, 800, 500);
+        
+        // Minute indicator on canvas
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fillRect(345, 8, 110, 24);
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 14px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(time + "'", 400, 26);
 
         // Draw Pitch Lines
         ctx.strokeStyle = "rgba(255,255,255,0.5)";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(400, 0); ctx.lineTo(400, 500); // Center line
+        ctx.moveTo(400, 0); ctx.lineTo(400, 500);
         ctx.stroke();
         ctx.beginPath();
-        ctx.arc(400, 250, 60, 0, Math.PI*2); // Center circle
+        ctx.arc(400, 250, 60, 0, Math.PI*2);
         ctx.stroke();
-        // Penalty boxes
         ctx.strokeRect(0, 100, 120, 300);
         ctx.strokeRect(680, 100, 120, 300);
 
-        // Logic: Ball moves, entities chase ball
-        ball.x += (Math.random() - 0.5) * 30;
-        ball.y += (Math.random() - 0.5) * 30;
+        // Ball moves toward target
+        ball.x += (ball.targetX - ball.x) * 0.08;
+        ball.y += (ball.targetY - ball.y) * 0.08;
+        
+        // Add slight wobble
+        ball.x += (Math.random() - 0.5) * 3;
+        ball.y += (Math.random() - 0.5) * 3;
+        if (ball.x < 5) ball.x = 5; if (ball.x > 795) ball.x = 795;
+        if (ball.y < 5) ball.y = 5; if (ball.y > 495) ball.y = 495;
+        
+        // Pass ball to another player every ~15 ticks
+        if (ticksSincePass > 8 + Math.floor(Math.random() * 10)) {
+            pickNewTarget();
+            ticksSincePass = 0;
+        }
 
-        if (ball.x < 10) ball.x = 10; if (ball.x > 790) ball.x = 790;
-        if (ball.y < 10) ball.y = 10; if (ball.y > 490) ball.y = 490;
-
-        // Draw entities
-        entities.forEach(ent => {
-            // Move entity slowly towards ball
-            ent.x += (ball.x - ent.x) * 0.05 + (Math.random() - 0.5) * 5;
-            ent.y += (ball.y - ent.y) * 0.05 + (Math.random() - 0.5) * 5;
-            
-            // Constrain
-            if (ent.x < 20) ent.x = 20; if (ent.x > 780) ent.x = 780;
-            if (ent.y < 30) ent.y = 30; if (ent.y > 470) ent.y = 470;
-
+        // Draw entities at fixed positions
+        entities.forEach(function(ent) {
             drawMiniCard(ctx, ent);
         });
 
-        // Draw Ball
+        // Draw ball glow
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "#fff";
         ctx.fillStyle = "white";
         ctx.beginPath();
-        ctx.arc(ball.x, ball.y, 6, 0, Math.PI*2);
+        ctx.arc(ball.x, ball.y, 7, 0, Math.PI*2);
         ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        // Draw line from ball to holder
+        if (ballHolder) {
+            ctx.strokeStyle = "rgba(255,255,255,0.15)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(ball.x, ball.y);
+            ctx.lineTo(ballHolder.x, ballHolder.y);
+            ctx.stroke();
+        }
 
-        // Goals logic (90 ticks = 90 mins)
+        // Goals logic
         if (time % 15 === 0) {
-            if (Math.random() < 0.5) { // 50% chance of a goal event per 15 ticks
+            if (Math.random() < 0.5) {
                 if (Math.random() < myWinChance) {
                     homeScore++; ball.x = 400; ball.y = 250;
                     document.getElementById("match-home-score").innerText = homeScore;
@@ -5490,11 +5563,7 @@ function startDraftMatch(opponentUid) {
                     awayScore++; ball.x = 400; ball.y = 250;
                     document.getElementById("match-away-score").innerText = awayScore;
                 }
-                // Reset entity positions slightly on goal
-                entities.forEach(ent => {
-                    ent.x = ent.team === 'home' ? 300 : 500;
-                    ent.y = 250 + (Math.random() - 0.5) * 100;
-                });
+                pickNewTarget();
             }
         }
 
