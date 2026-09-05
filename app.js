@@ -1,4 +1,4 @@
-// ==========================================================================
+﻿// ==========================================================================
 // FPL Ultimate Market, Packs and Economy - Core Application JS
 // ==========================================================================
 
@@ -1190,7 +1190,7 @@ function renderPlayers(filter = "all", searchQuery = "") {
         !mockUsernames.includes(p.username) &&
         !p.isUTCard && 
         !p.id.includes('_pack_') && 
-        !p.id.includes('_starter_')
+        !p.id.includes('_starter_') && !p.isStarter
     );
 
     if (filter !== "all") {
@@ -2451,11 +2451,11 @@ window.openPack = function(packType) {
 
         // Pick only from players who are registered user accounts in state.players (excluding starter players, mock seeds, and already packed UT cards)
         const mockUsernames = ['ahmet10', 'mehmet8', 'can7', 'berk1', 'oguz9'];
-        let candidates = state.players.filter(p => p.username && p.username !== 'admin' && !p.id.includes('_starter_') && !mockUsernames.includes(p.username) && !p.isUTCard);
+        let candidates = state.players.filter(p => p.username && p.username !== 'admin' && !p.id.includes('_starter_') && !p.isStarter && !mockUsernames.includes(p.username) && !p.isUTCard);
         
         // Fallback: Eski veri tabanından kalan oyuncuları da dahil et (ama starter olanları ve mock olanları yine de ele)
         if (candidates.length === 0) {
-            candidates = state.players.filter(p => p.id !== 'p_admin' && !p.id.includes('_starter_') && !mockUsernames.includes(p.username) && !p.isUTCard);
+            candidates = state.players.filter(p => p.id !== 'p_admin' && !p.id.includes('_starter_') && !p.isStarter && !mockUsernames.includes(p.username) && !p.isUTCard);
         }
 
         // Filter candidates by OVR if possible, otherwise fallback to any candidate
@@ -2559,10 +2559,10 @@ window.openDailyPack = function() {
         // Daily Pack: OVR 70 to 99 range
         const minOVR = 70, maxOVR = 99;
         const mockUsernames = ['ahmet10', 'mehmet8', 'can7', 'berk1', 'oguz9'];
-        let candidates = state.players.filter(p => p.username && p.username !== 'admin' && !p.id.includes('_starter_') && !mockUsernames.includes(p.username) && !p.isUTCard);
+        let candidates = state.players.filter(p => p.username && p.username !== 'admin' && !p.id.includes('_starter_') && !p.isStarter && !mockUsernames.includes(p.username) && !p.isUTCard);
         
         if (candidates.length === 0) {
-            candidates = state.players.filter(p => p.id !== 'p_admin' && !p.id.includes('_starter_') && !mockUsernames.includes(p.username) && !p.isUTCard);
+            candidates = state.players.filter(p => p.id !== 'p_admin' && !p.id.includes('_starter_') && !p.isStarter && !mockUsernames.includes(p.username) && !p.isUTCard);
         }
 
         let pool = candidates.filter(p => {
@@ -3025,7 +3025,7 @@ function renderAdminPlayerEditDropdown(searchStr = "") {
     const editPlayerSelect = document.getElementById("edit-select-player");
     if (!editPlayerSelect) return;
     const mockUsernames = ['ahmet10', 'mehmet8', 'can7', 'berk1', 'oguz9'];
-    let nonUTPlayers = state.players.filter(p => !p.isUTCard && !p.id.includes('_pack_') && !p.id.includes('_starter_') && !mockUsernames.includes(p.username));
+    let nonUTPlayers = state.players.filter(p => !p.isUTCard && !p.id.includes('_pack_') && !p.id.includes('_starter_') && !p.isStarter && !mockUsernames.includes(p.username));
     
     if (searchStr.trim() !== "") {
         const lowerStr = searchStr.toLowerCase().trim();
@@ -3337,7 +3337,7 @@ function renderLineupCheckboxes(teamId, containerId, titleId, match) {
     const teamName = getTeamName(teamId);
     if (titleEl) titleEl.innerText = `${teamName} Kadrosu`;
     
-    const teamPlayers = state.players.filter(p => p.teamId === teamId && !p.isUTCard && !p.id.includes('_pack_') && !p.id.includes('_starter_'));
+    const teamPlayers = state.players.filter(p => p.teamId === teamId && !p.isUTCard && !p.id.includes('_pack_') && !p.id.includes('_starter_') && !p.isStarter);
     
     if (teamPlayers.length === 0) {
         container.innerHTML = '<p class="text-muted" style="font-size:0.85rem;">Bu takımda oyuncu yok</p>';
@@ -3367,7 +3367,7 @@ function addStatRow(teamSide) {
     const teamId = teamSide === 'home' ? match.homeTeam : match.awayTeam;
     const listContainer = document.getElementById(teamSide === 'home' ? "home-scorers-list" : "away-scorers-list");
 
-    const teamPlayers = state.players.filter(p => p.teamId === teamId && !p.isUTCard && !p.id.includes('_pack_') && !p.id.includes('_starter_'));
+    const teamPlayers = state.players.filter(p => p.teamId === teamId && !p.isUTCard && !p.id.includes('_pack_') && !p.id.includes('_starter_') && !p.isStarter);
 
     const row = document.createElement("div");
     row.className = "stat-row";

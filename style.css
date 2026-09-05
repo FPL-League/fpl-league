@@ -933,21 +933,16 @@ tbody tr:hover {
     background: none;
 }
 
-.draft-slot.filled .fut-card {
-    width: 100px;
-    height: 140px;
-    padding: 8px;
-    border-radius: 8px;
-}
 
-.draft-slot.filled .card-rating { font-size: 0.95rem; }
-.draft-slot.filled .card-pos { font-size: 0.55rem; }
-.draft-slot.filled .card-avatar { width: 35px; height: 35px; margin: 2px 0; }
-.draft-slot.filled .card-avatar i { font-size: 1.2rem; }
-.draft-slot.filled .card-name { font-size: 0.6rem; margin-bottom: 2px; }
-.draft-slot.filled .card-team-name { font-size: 0.5rem; margin-top: 0; margin-bottom: 4px; }
-.draft-slot.filled .card-stats { display: none; }
-.draft-slot.filled .card-footer-stats { display: none; }
+
+
+
+
+
+
+
+
+
 
 .draft-status-card {
     background: var(--bg-card);
@@ -1841,7 +1836,43 @@ input:focus, select:focus {
     width: 100%;
     z-index: 2;
 }
-.draft-slot.filled .fut-card {
-    min-height: 140px !important;
-    height: 140px !important;
+
+.draft-slot.filled {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    height: 140px;
+    overflow: visible;
 }
+
+
+
+/* Reset all internal font overrides so the card looks exactly like a normal card but scaled */
+
+
+
+
+
+
+
+
+.draft-slot.filled .fut-card {
+    width: 200px !important;
+    height: 280px !important;
+    min-height: 280px !important;
+    transform: scale(0.48);
+    transform-origin: center;
+    margin: 0;
+    padding: 15px;
+    border-radius: 14px;
+}
+
+.draft-slot.filled .card-rating { font-size: 1.8rem; }
+.draft-slot.filled .card-pos { font-size: 1rem; }
+.draft-slot.filled .card-avatar { width: 100px; height: 100px; margin: 5px 0; }
+.draft-slot.filled .card-avatar i { font-size: 4rem; }
+.draft-slot.filled .card-name { font-size: 1.1rem; margin-bottom: 5px; }
+.draft-slot.filled .card-team-name { font-size: 0.8rem; margin-top: 0; margin-bottom: 10px; }
+.draft-slot.filled .card-stats { display: flex; }
+.draft-slot.filled .card-footer-stats { display: flex; }
