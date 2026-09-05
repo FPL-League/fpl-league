@@ -5252,6 +5252,31 @@ window.renderAdminPanel = function() {
 
 // --- DRAFT MATCH ENGINE (2D CARDS) ---
 
+function saveDraftSquadLocal() {
+    try {
+        const toSave = {};
+        Object.keys(state.draftSquad).forEach(k => {
+            toSave[k] = state.draftSquad[k] ? state.draftSquad[k].id : null;
+        });
+        localStorage.setItem("draftSquad_" + (state.currentUser ? state.currentUser.username : "guest"), JSON.stringify(toSave));
+    } catch(e) {}
+}
+
+function loadDraftSquadLocal() {
+    try {
+        const key = "draftSquad_" + (state.currentUser ? state.currentUser.username : "guest");
+        const raw = localStorage.getItem(key);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        Object.keys(saved).forEach(k => {
+            const pid = saved[k];
+            if (pid) {
+                const p = state.players.find(x => x.id === pid);
+                if (p) state.draftSquad[k] = p;
+            }
+        });
+    } catch(e) {}
+}
 function renderDraftOpponents() {
     const list = document.getElementById("draft-opponents-list");
     if (!list) return;
