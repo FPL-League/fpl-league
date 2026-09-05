@@ -686,7 +686,7 @@ function initAuthHandlers() {
             position: position, // save for later when creating card
             selectedTeamId: selectedTeamId, // save for later
             coins: 250,
-            inventory: [], // no cards until approved
+            inventory: ["starter_lorenzo_1", "starter_lorenzo_2", "starter_lorenzo_3", "starter_lorenzo_4", "starter_lorenzo_5", "starter_lorenzo_6"],
             createdAt: Date.now()
         };
 
