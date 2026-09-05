@@ -6000,3 +6000,105 @@ window.buyPack = function(type, price) {
 window.closePackModal = function() {
     document.getElementById("pack-opening-modal").classList.add("hidden");
 }
+// --- DRAFT MATCH DAILY LIMIT ---
+function getDraftMatchesPlayedToday() {
+    if (!state.currentUser) return 0;
+    var key = "draftMatchesDate_" + state.currentUser.username;
+    var keyCount = "draftMatchesCount_" + state.currentUser.username;
+    var today = new Date().toDateString();
+    var lastDate = localStorage.getItem(key);
+    if (lastDate !== today) {
+        localStorage.setItem(key, today);
+        localStorage.setItem(keyCount, "0");
+        return 0;
+    }
+    return parseInt(localStorage.getItem(keyCount) || "0");
+}
+
+function incrementDraftMatchCount() {
+    if (!state.currentUser) return;
+    var key = "draftMatchesCount_" + state.currentUser.username;
+    var cur = getDraftMatchesPlayedToday();
+    localStorage.setItem(key, String(cur + 1));
+}
+
+// --- RANDOM MIX MATCH ---
+window.startRandomMatch = function() {
+    if (!state.currentUser) { alert("Once giris yapin."); return; }
+    var mySquad = Object.values(state.draftSquad || {}).filter(function(p) { return p !== null; });
+    if (mySquad.length < 6) { alert("Maca baslamak icin 6 slotu da doldurun!"); return; }
+    
+    var today = getDraftMatchesPlayedToday();
+    if (today >= 15) { alert("Gunluk 15 mac limitine ulastiniz! Yarin tekrar deneyin."); return; }
+    
+    var opponents = state.users.filter(function(u) { return u.status === "approved" && u.username !== state.currentUser.username; });
+    if (opponents.length === 0) { alert("Sistemde baska kullanici bulunamadi."); return; }
+    var opp = opponents[Math.floor(Math.random() * opponents.length)];
+    incrementDraftMatchCount();
+    startDraftMatch(opp.username);
+};
+
+// --- ONLINE MATCH ---
+window.joinOnlineQueue = function() {
+    if (!state.currentUser) { alert("Once giris yapin."); return; }
+    var mySquad = Object.values(state.draftSquad || {}).filter(function(p) { return p !== null; });
+    if (mySquad.length < 6) { alert("Maca baslamak icin 6 slotu da doldurun!"); return; }
+    
+    var today = getDraftMatchesPlayedToday();
+    if (today >= 15) { alert("Gunluk 15 mac limitine ulastiniz!"); return; }
+    
+    alert("Rakip araniyor...");
+    
+    setTimeout(function() {
+        var opponents = state.users.filter(function(u) { return u.status === "approved" && u.username !== state.currentUser.username; });
+        if (opponents.length > 0) {
+            incrementDraftMatchCount();
+            startDraftMatch(opponents[Math.floor(Math.random() * opponents.length)].username);
+        } else {
+            alert("Rakip bulunamadi.");
+        }
+    }, 2000);
+};
+
+// --- SPIN WHEEL ---
+window.spinWheel = function() {
+    if (!state.currentUser) { alert("Once giris yapin."); return; }
+    
+    var keyDate = "spinDate_" + state.currentUser.username;
+    var today = new Date().toDateString();
+    if (localStorage.getItem(keyDate) === today) {
+        alert("Carkifelegini zaten bugun cevirdin! Yarin tekrar gel.");
+        return;
+    }
+    localStorage.setItem(keyDate, today);
+    
+    var prizes = [50, 50, 50, 50, 50, 50, 100, 100, 100, 300, 300, 500];
+    var won = prizes[Math.floor(Math.random() * prizes.length)];
+    
+    var display = document.getElementById("spin-result-display");
+    if (!display) return;
+    display.innerText = "...";
+    display.style.color = "white";
+    
+    var ticks = 0;
+    var options = [50, 100, 300, 500, 50, 100, 50, 300];
+    var spinAnim = setInterval(function() {
+        display.innerText = options[ticks % options.length] + " coin";
+        ticks++;
+        if (ticks > 20) {
+            clearInterval(spinAnim);
+            display.innerText = won + " coin";
+            display.style.color = won >= 300 ? "#ffd700" : "#00f5d4";
+            display.style.fontSize = "1.5rem";
+            
+            state.currentUser.coins = (state.currentUser.coins || 0) + won;
+            var cEl = document.getElementById("nav-coins");
+            if (cEl) cEl.innerText = state.currentUser.coins;
+            saveDatabase();
+        }
+    }, 100);
+};
+
+window.closeSpinModal = function() {
+    document.getElementById("spin-wheel-modal").classList.add("hidden");
+};
