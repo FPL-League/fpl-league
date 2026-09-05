@@ -5212,7 +5212,7 @@ function renderDraftOpponents() {
     const opponents = state.users.filter(u => u.status === 'approved' && (!state.currentUser || u.username !== state.currentUser.username));
     
     if (opponents.length === 0) {
-        list.innerHTML = <div style="padding: 2rem; text-align: center; color: var(--text-muted);">Sistemde baska uygun rakip bulunamadi.</div>;
+        list.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted);">Sistemde baska uygun rakip bulunamadi.</div>`;
         return;
     }
 
@@ -5223,22 +5223,20 @@ function renderDraftOpponents() {
     let html = "";
     selected.forEach(opp => {
         const oppAvatar = opp.avatar || 'https://via.placeholder.com/40';
-        html += 
+        html += `
         <div style="background: var(--surface-light); padding: 1rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent-neon);">
             <div style="display: flex; align-items: center; gap: 1rem;">
-                <img src="" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                <img src="${oppAvatar}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
                 <div>
-                    <h4 style="margin: 0;"></h4>
+                    <h4 style="margin: 0;">${opp.nickname}</h4>
                     <span style="font-size: 0.8rem; color: var(--text-muted);">UT Kadrosu</span>
                 </div>
             </div>
-            <button class="btn btn-primary" onclick="startDraftMatch('')">Maca Basla</button>
-        </div>;
+            <button class="btn btn-primary" onclick="startDraftMatch('${opp.username}')">Maca Basla</button>
+        </div>`;
     });
     list.innerHTML = html;
 }
-
-// Hook renderDraftOpponents to renderDraft
 const _origRenderDraftForOpp = renderDraft;
 window.renderDraft = function() {
     if(typeof _origRenderDraftForOpp === 'function') _origRenderDraftForOpp();
@@ -5443,13 +5441,13 @@ function finishDraftMatch(home, away) {
 
     let coinsEarned = 0;
     if (home > away) {
-        resEl.innerHTML = <span style="color: #4CAF50;">KAZANDIN!</span><br><span style="font-size: 2rem; color: var(--accent-gold); text-shadow: none;">+30 🪙</span>;
+        resEl.innerHTML = `<span style="color: #4CAF50;">KAZANDIN!</span><br><span style="font-size: 2rem; color: var(--accent-gold); text-shadow: none;">+30 🪙</span>`;
         coinsEarned = 30;
     } else if (home === away) {
-        resEl.innerHTML = <span style="color: #FFC107;">BERABERE</span><br><span style="font-size: 2rem; color: var(--accent-gold); text-shadow: none;">+20 🪙</span>;
+        resEl.innerHTML = `<span style="color: #FFC107;">BERABERE</span><br><span style="font-size: 2rem; color: var(--accent-gold); text-shadow: none;">+20 🪙</span>`;
         coinsEarned = 20;
     } else {
-        resEl.innerHTML = <span style="color: #F44336;">MAGLUBIYET</span><br><span style="font-size: 2rem; color: var(--accent-gold); text-shadow: none;">+10 🪙</span>;
+        resEl.innerHTML = `<span style="color: #F44336;">MAGLUBIYET</span><br><span style="font-size: 2rem; color: var(--accent-gold); text-shadow: none;">+10 🪙</span>`;
         coinsEarned = 10;
     }
     
