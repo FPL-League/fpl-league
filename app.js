@@ -767,25 +767,31 @@ function renderAll() {
 function renderAuthStatusBar() {
     const bar = document.getElementById("auth-status-bar");
     if (state.currentUser) {
-        const avatarImg = state.currentUser.avatar && state.currentUser.avatar.trim().length > 5 ? `<img src="${state.currentUser.avatar}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border: 2px solid var(--accent-neon);" onerror="this.outerHTML='<i class=\\'fa-solid fa-user-circle\\'></i>'">` : `<i class="fa-solid fa-user-circle"></i>`;
+        const avatarImg = state.currentUser.avatar && state.currentUser.avatar.trim().length > 5 ? `<img src="${state.currentUser.avatar}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border: 2px solid var(--accent-neon);" onerror="this.outerHTML='<i class=\'fa-solid fa-user-circle\'></i>'">` : `<i class="fa-solid fa-user-circle"></i>`;
         
         bar.innerHTML = `
-            <div class="auth-user-card" style="cursor: pointer;" onclick="openProfileEditModal()" title="Profili Düzenle">
+            <div class="auth-user-card" style="cursor: pointer;" onclick="openProfileEditModal()" title="Profili Duzenle">
                 ${avatarImg}
                 <div>
                     <span class="auth-username">${state.currentUser.nickname}</span>
                     <span class="auth-role-badge">${state.currentUser.role}</span>
                 </div>
-                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); logout()">Çıkış Yap</button>
+                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); logout()">Cikis Yap</button>
             </div>
         `;
+        const coinsDisplay = document.getElementById("nav-coins-display");
+        if (coinsDisplay) {
+            coinsDisplay.style.display = "flex";
+            document.getElementById("nav-coins").innerText = state.currentUser.coins || 0;
+        }
     } else {
         bar.innerHTML = `
-            <button class="btn btn-primary btn-sm" onclick="showAuthScreen()">Oturum Aç / Kayıt Ol</button>
+            <button class="btn btn-primary btn-sm" onclick="showAuthScreen()">Oturum Ac / Kayit Ol</button>
         `;
+        const coinsDisplay = document.getElementById("nav-coins-display");
+        if (coinsDisplay) coinsDisplay.style.display = "none";
     }
 }
-
 window.showAuthScreen = function() {
     document.querySelectorAll(".content-section").forEach(sec => sec.classList.remove("active"));
     document.getElementById("auth-screen").classList.add("active");
