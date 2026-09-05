@@ -60,6 +60,12 @@
                 <button class="nav-item" data-target="betting" id="nav-betting-btn">
                     <i class="fa-solid fa-dice"></i> Bahis
                 </button>
+                <button class="nav-item" data-target="draft" id="nav-draft-btn">
+                    <i class="fa-solid fa-layer-group"></i> Draft
+                </button>
+                <button class="nav-item" data-target="market" id="nav-market-btn">
+                    <i class="fa-solid fa-shop"></i> Transfer Marketi
+                </button>
                 <button class="nav-item admin-nav hidden" data-target="admin" id="sidebar-admin-btn">
                     <i class="fa-solid fa-screwdriver-wrench"></i> Yönetici Paneli
                 </button>
@@ -653,6 +659,147 @@
 
 
 
+            <!-- DRAFT SECTION -->
+            <section id="draft" class="section hidden">
+                <div class="card" style="position: relative;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 style="margin: 0;"><i class="fa-solid fa-layer-group"></i> Ultimate Team Kadrom</h3>
+                        <button class="btn btn-secondary" id="reset-draft-btn">Kadro Sifirla</button>
+                    </div>
+
+                    <!-- Squad Builder Pitch -->
+                    <div class="draft-pitch">
+                        <!-- Top (Opponent side visual) -->
+                        <div class="pitch-line pitch-line-top"></div>
+                        <div class="pitch-line pitch-line-bottom"></div>
+                        <div class="pitch-line pitch-center-circle"></div>
+                        <div class="pitch-line pitch-center-line"></div>
+                        
+                        <!-- Forward -->
+                        <div class="draft-row">
+                            <div id="slot-fwd" class="draft-slot">
+                                <div class="slot-placeholder">
+                                    <i class="fa-solid fa-plus"></i><span>FORVET</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Midfield -->
+                        <div class="draft-row" style="gap: 100px;">
+                            <div id="slot-mid1" class="draft-slot">
+                                <div class="slot-placeholder">
+                                    <i class="fa-solid fa-plus"></i><span>SOL ORTA</span>
+                                </div>
+                            </div>
+                            <div id="slot-mid2" class="draft-slot">
+                                <div class="slot-placeholder">
+                                    <i class="fa-solid fa-plus"></i><span>SAG ORTA</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Defense -->
+                        <div class="draft-row">
+                            <div id="slot-def" class="draft-slot">
+                                <div class="slot-placeholder">
+                                    <i class="fa-solid fa-plus"></i><span>DEFANS</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Goalkeeper -->
+                        <div class="draft-row">
+                            <div id="slot-gk" class="draft-slot">
+                                <div class="slot-placeholder">
+                                    <i class="fa-solid fa-plus"></i><span>KALECI</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Metrics Overlay -->
+                    <div class="draft-metrics-overlay">
+                        <div class="draft-metric-box">
+                            <span class="metric-label">TAKIM REYTINGI</span>
+                            <span id="draft-rating" class="metric-val">0</span>
+                        </div>
+                        <div class="draft-metric-box">
+                            <span class="metric-label">KIMYA</span>
+                            <span id="draft-chemistry" class="metric-val">0</span>
+                        </div>
+                    </div>
+                    
+                    <div style="height: 10px; background: rgba(255,255,255,0.1); margin-top: 10px; border-radius: 5px; overflow: hidden;">
+                        <div id="draft-chem-bar" style="height: 100%; width: 0%; background: var(--accent-neon); transition: 0.5s ease;"></div>
+                    </div>
+
+                    <!-- Draft Selection Modal/Panel -->
+                    <div id="draft-selection-panel" class="hidden" style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(10,14,23,0.95); z-index: 100; display: flex; flex-direction: column; padding: 2rem; overflow-y: auto;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                            <h3><i class="fa-solid fa-magnifying-glass"></i> Oyuncu Sec</h3>
+                            <button class="btn btn-secondary" onclick="document.getElementById('draft-selection-panel').classList.add('hidden')"><i class="fa-solid fa-xmark"></i> Kapat</button>
+                        </div>
+                        <div id="draft-candidates-container" style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
+                            <!-- Candidate Cards populated here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- MARKET SECTION -->
+            <section id="market" class="section hidden">
+                <div class="card" style="margin-bottom: 2rem;">
+                    <h3><i class="fa-solid fa-box-open"></i> FC Magazasi (Paketler)</h3>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+                        <div class="pack-container" onclick="buyPack('bronze', 250)">
+                            <div class="pack-title">Bronz Paket</div>
+                            <div style="font-size: 0.9rem; color: #ccc;">%70 Bronz, %25 Gm, %5 Altn</div>
+                            <div class="pack-price">250 🪙</div>
+                        </div>
+                        <div class="pack-container" onclick="buyPack('silver', 1000)" style="background: linear-gradient(135deg, #757F9A 0%, #D7DDE8 100%);">
+                            <div class="pack-title" style="color: #222;">Gumus Paket</div>
+                            <div style="font-size: 0.9rem; color: #444;">%20 Bronz, %60 Gm, %20 Altn</div>
+                            <div class="pack-price" style="color: #111;">1.000 🪙</div>
+                        </div>
+                        <div class="pack-container" onclick="buyPack('gold', 5000)" style="background: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7);">
+                            <div class="pack-title" style="color: #4a3600;">Altin Paket</div>
+                            <div style="font-size: 0.9rem; color: #6a4f00;">%5 Gm, %80 Altn, %15 Efsanevi</div>
+                            <div class="pack-price" style="color: #332400;">5.000 🪙</div>
+                        </div>
+                        <div class="pack-container" onclick="buyPack('legendary', 25000)" style="background: linear-gradient(135deg, #ff00cc, #333399);">
+                            <div class="pack-title">Elit Paket</div>
+                            <div style="font-size: 0.9rem; color: #ddd;">%30 Altn, %70 Efsanevi / TOTW</div>
+                            <div class="pack-price">25.000 🪙</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transfer Market Lists -->
+                <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+                    <!-- Market Listings -->
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="margin: 0;"><i class="fa-solid fa-money-bill-transfer"></i> Pazardaki Oyuncular</h3>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Oyuncu</th>
+                                        <th>Mevki</th>
+                                        <th>Satici</th>
+                                        <th>Tur</th>
+                                        <th>Fiyat (🪙)</th>
+                                        <th>Hedef (Takas)</th>
+                                        <th>Islem</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transfer-market-list">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
             <!-- PLAYER SEARCH SECTION -->
             <section id="epic-search" class="content-section">
                 <div class="card" style="max-width: 600px; margin: 0 auto; text-align: center; padding: 3rem 2rem;">
@@ -841,7 +988,7 @@
 
     <!-- NOTIFICATION TOAST -->
     <div id="notification-toast" class="toast hidden"></div>
-    <script src="app.js?v=51"></script>
+    <script src="app.js?v=52"></script>
 </body>
 </html>
 
