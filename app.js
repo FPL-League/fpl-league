@@ -3766,7 +3766,7 @@ window.switchTab = function(targetSectionId) {
     
     switch (targetSectionId) {
         case "dashboard":
-            titleEl.innerText = "FPL Market Portal";
+            titleEl.innerText = "Super Lig Ana Sayfasi";
             subEl.innerText = "Ligdeki son gelişmelere genel bir bakış.";
             break;
         case "standings":
