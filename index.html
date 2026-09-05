@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=68">
+    <link rel="stylesheet" href="style.css?v=69">
 
     <!-- Firebase SDK (v8 Compat for simplicity) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -757,13 +757,7 @@
         </div>
     </button>
     
-    <button class="btn btn-secondary" style="padding:1.2rem; font-size:1rem; display:flex; gap:0.75rem; align-items:center; justify-content:center;" onclick="document.getElementById('spin-wheel-modal').classList.remove('hidden')">
-        <i class="fa-solid fa-circle-nodes" style="color:var(--accent-gold); font-size:1.3rem;"></i>
-        <div style="text-align:left;">
-            <div style="font-weight:bold;">Gunluk Carkifelek</div>
-            <div style="font-size:0.8rem; opacity:0.8;">24 saatte bir coin kazan</div>
-        </div>
-    </button>
+    
     
     <div style="margin-top:auto; padding-top:1rem; border-top:1px solid #333; color:var(--text-muted); font-size:0.85rem;">
         <div>🏆 Galibiyet: <strong style="color:#4CAF50;">+30 coin</strong></div>
@@ -808,43 +802,61 @@
                     <button class="btn btn-secondary" id="tab-market-sell" onclick="switchMarketTab('sell')"><i class="fa-solid fa-tags"></i> Oyuncu Satma</button>
                 </div>
 
-                <!-- PACKS SUBTAB -->
+                                <!-- PACKS SUBTAB -->
                 <div id="market-sub-packs">
-                    <div class="card" style="margin-bottom: 2rem;">
-                        <h3><i class="fa-solid fa-box-open"></i> FC Magazasi (Paketler)</h3>
-                        <p style="color: var(--text-muted); margin-bottom: 1rem;">Paket satin alarak yeni oyuncular cikartin.</p>
-                        
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
-                            <!-- Bronze Pack -->
-                            <div class="pack-container" onclick="buyPack('bronze', 100)" style="background: linear-gradient(135deg, #cd7f32, #a0522d, #8b4513, #cd7f32);">
-                                <div class="pack-title" style="color: #fff;">Bronz Paket</div>
-                                <div style="font-size: 0.85rem; color: #fff; margin-bottom: 0.5rem;">Max 69 OVR<br>dusuk kartlar da cikabilir</div>
-                                <div class="pack-price" style="background: rgba(0,0,0,0.5); padding: 5px; border-radius: 5px;">100 🪙</div>
-                            </div>
-                            
-                            <!-- Silver Pack -->
-                            <div class="pack-container" onclick="buyPack('silver', 150)" style="background: linear-gradient(135deg, #757F9A 0%, #D7DDE8 100%);">
-                                <div class="pack-title" style="color: #222;">Gumus Paket</div>
-                                <div style="font-size: 0.85rem; color: #444; margin-bottom: 0.5rem;">70 - 79 OVR<br>arasi oyuncular</div>
-                                <div class="pack-price" style="background: rgba(255,255,255,0.5); padding: 5px; border-radius: 5px; color: #111;">150 🪙</div>
-                            </div>
-                            
-                            <!-- Gold Pack -->
-                            <div class="pack-container" onclick="buyPack('gold', 300)" style="background: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7);">
-                                <div class="pack-title" style="color: #4a3600;">Altin Paket</div>
-                                <div style="font-size: 0.85rem; color: #6a4f00; margin-bottom: 0.5rem;">80 - 89 OVR<br>arasi oyuncular</div>
-                                <div class="pack-price" style="background: rgba(255,255,255,0.5); padding: 5px; border-radius: 5px; color: #332400;">300 🪙</div>
-                            </div>
-                            
-                            <!-- Epic Pack -->
-                            <div class="pack-container" onclick="buyPack('epic', 500)" style="background: linear-gradient(135deg, #ff00cc, #333399); position: relative; overflow: hidden; border: 2px solid #fff;">
-                                <div style="position: absolute; inset: 0; background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet); opacity: 0.3; z-index: 1;"></div>
-                                <div style="position: relative; z-index: 2;">
-                                    <div class="pack-title" style="text-shadow: 0 0 10px #fff;">Epic Paket</div>
-                                    <div style="font-size: 0.85rem; color: #eee; margin-bottom: 0.5rem;">Haftanin en cok reyting<br>yukselten 10 oyuncusu</div>
-                                    <div class="pack-price" style="background: rgba(0,0,0,0.6); padding: 5px; border-radius: 5px; color: #fff;">500 🪙</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                        <div>
+                            <h3 style="margin-bottom:0.5rem;"><i class="fa-solid fa-box-open"></i> FC Magazasi (Paketler)</h3>
+                            <p style="color: var(--text-muted); margin:0;">Paket satin alarak yeni oyuncular cikartin.</p>
+                        </div>
+                        <button class="btn btn-accent" style="padding:0.8rem 1.5rem; font-size:1.1rem; display:flex; gap:0.5rem; align-items:center;" onclick="document.getElementById('spin-wheel-modal').classList.remove('hidden')">
+                            <i class="fa-solid fa-circle-nodes"></i> Gunluk Carkifelek
+                        </button>
+                    </div>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 2rem; justify-content: center; margin-bottom: 2rem;">
+                        <!-- Bronze Pack -->
+                        <div style="text-align: center; max-width: 220px;">
+                            <div class="ut-pack bronze" onclick="buyPack('bronze', 100)">
+                                <div class="ut-pack-content">
+                                    <div class="ut-pack-title">Bronz</div>
+                                    <div class="pack-price" style="color:white;">100 🪙</div>
                                 </div>
                             </div>
+                            <p style="color:var(--text-muted); font-size:0.9rem; margin-top:1rem;">Max 69 OVR<br>dusuk kartlar da cikabilir</p>
+                        </div>
+                        
+                        <!-- Silver Pack -->
+                        <div style="text-align: center; max-width: 220px;">
+                            <div class="ut-pack silver" onclick="buyPack('silver', 150)">
+                                <div class="ut-pack-content">
+                                    <div class="ut-pack-title">Gumus</div>
+                                    <div class="pack-price" style="color:#222;">150 🪙</div>
+                                </div>
+                            </div>
+                            <p style="color:var(--text-muted); font-size:0.9rem; margin-top:1rem;">70 - 79 OVR<br>arasi oyuncular cikar</p>
+                        </div>
+                        
+                        <!-- Gold Pack -->
+                        <div style="text-align: center; max-width: 220px;">
+                            <div class="ut-pack gold" onclick="buyPack('gold', 300)">
+                                <div class="ut-pack-content">
+                                    <div class="ut-pack-title">Altin</div>
+                                    <div class="pack-price" style="color:#3b2300;">300 🪙</div>
+                                </div>
+                            </div>
+                            <p style="color:var(--text-muted); font-size:0.9rem; margin-top:1rem;">80 - 89 OVR<br>arasi elit oyuncular</p>
+                        </div>
+                        
+                        <!-- Epic Pack -->
+                        <div style="text-align: center; max-width: 220px;">
+                            <div class="ut-pack epic" onclick="buyPack('epic', 500)">
+                                <div class="ut-pack-content">
+                                    <div class="ut-pack-title" style="color:white; text-shadow:0 0 10px #ff00cc;">Epic</div>
+                                    <div class="pack-price" style="color:white;">500 🪙</div>
+                                </div>
+                            </div>
+                            <p style="color:var(--text-muted); font-size:0.9rem; margin-top:1rem;">Haftanin en cok reyting<br>yukselten 10 oyuncusu!</p>
                         </div>
                     </div>
                 </div>
@@ -1109,7 +1121,7 @@
 
     <!-- NOTIFICATION TOAST -->
     <div id="notification-toast" class="toast hidden"></div>
-    <script src="app.js?v=68"></script>
+    <script src="app.js?v=69"></script>
 <div id="spin-wheel-modal" class="modal hidden"><div class="modal-content" style="max-width: 420px; text-align:center;"><h2 style="margin-bottom:1rem;"><i class="fa-solid fa-circle-nodes" style="color:var(--accent-gold);"></i> Gunluk Carkifelek</h2><p style="color:var(--text-muted); margin-bottom:1.5rem;">Her 24 saatte bir dondur, coin kazan!</p><div style="background: conic-gradient(from 0deg, #ffd700 0% 25%, #888 25% 50%, #9b59b6 50% 75%, #e74c3c 75%); width: 200px; height: 200px; border-radius: 50%; margin: 0 auto 1.5rem; display:flex; align-items:center; justify-content:center; border: 6px solid white;"><div id="spin-result-display" style="background:rgba(0,0,0,0.85); border-radius:50%; width:100px; height:100px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; font-weight:bold; color:white;">?</div></div><div style="color: var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem;"><div>50 coin - %60 ihtimal</div><div>100 coin - %25 ihtimal</div><div>300 coin - %12 ihtimal</div><div style="color:var(--accent-gold);">500 coin - %3 ihtimal</div></div><div style="display:flex; gap:0.75rem;"><button class="btn btn-primary" style="flex:1;" onclick="spinWheel()"><i class="fa-solid fa-rotate"></i> DONDUR</button><button class="btn btn-secondary" style="flex:1;" onclick="closeSpinModal()">Kapat</button></div></div></div>
 </body>
 </html>
