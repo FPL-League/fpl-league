@@ -5201,3 +5201,266 @@ window.renderAdminPanel = function() {
 };
 
 
+
+// --- DRAFT MATCH ENGINE (2D CARDS) ---
+
+function renderDraftOpponents() {
+    const list = document.getElementById("draft-opponents-list");
+    if (!list) return;
+
+    // Bulutlardan rakip cek. Sadece onaylanmis ve kendisi olmayanlar
+    const opponents = state.users.filter(u => u.status === 'approved' && (!state.currentUser || u.username !== state.currentUser.username));
+    
+    if (opponents.length === 0) {
+        list.innerHTML = <div style="padding: 2rem; text-align: center; color: var(--text-muted);">Sistemde baska uygun rakip bulunamadi.</div>;
+        return;
+    }
+
+    // Shuffle and pick 5
+    opponents.sort(() => Math.random() - 0.5);
+    const selected = opponents.slice(0, 5);
+
+    let html = "";
+    selected.forEach(opp => {
+        const oppAvatar = opp.avatar || 'https://via.placeholder.com/40';
+        html += 
+        <div style="background: var(--surface-light); padding: 1rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent-neon);">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <img src="" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                <div>
+                    <h4 style="margin: 0;"></h4>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">UT Kadrosu</span>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="startDraftMatch('')">Maca Basla</button>
+        </div>;
+    });
+    list.innerHTML = html;
+}
+
+// Hook renderDraftOpponents to renderDraft
+const _origRenderDraftForOpp = renderDraft;
+window.renderDraft = function() {
+    if(typeof _origRenderDraftForOpp === 'function') _origRenderDraftForOpp();
+    renderDraftOpponents();
+};
+
+let draftMatchInterval;
+function startDraftMatch(opponentUid) {
+    if (!state.currentUser) { alert("Once giris yapin."); return; }
+    
+    const mySquad = Object.values(state.draftSquad).filter(p => p !== null);
+    if (mySquad.length < 5) {
+        alert("Maca baslamak icin kadronuzdaki 5 slota da oyuncu yerlestirmelisiniz!");
+        return;
+    }
+
+    const opponent = state.users.find(u => u.username === opponentUid);
+    if (!opponent) return;
+
+    // Get My Team Power
+    const myOvr = parseInt(document.getElementById("draft-rating").innerText) || 70;
+    const myChem = parseInt(document.getElementById("draft-chemistry").innerText) || 0;
+    const myPower = myOvr + (myChem * 0.2);
+
+    // Opponent Power & Squad
+    let oppPower = 70;
+    let oppSquadArray = [];
+    if (opponent.draftSquad) {
+        oppSquadArray = Object.values(opponent.draftSquad).filter(p => p !== null);
+        if (oppSquadArray.length === 5) {
+            const oppOvr = Math.round(oppSquadArray.reduce((acc, p) => acc + getPlayerOVR(p), 0) / 5);
+            oppPower = oppOvr + 10; // mock chem
+        }
+    }
+    
+    // If opponent doesn't have 5 players, fill with generic starters
+    if (oppSquadArray.length < 5) {
+        oppSquadArray = state.players.filter(p => p.username === opponent.username).slice(0, 5);
+    }
+
+    // Open Overlay
+    document.getElementById("draft-match-overlay").classList.remove("hidden");
+    document.getElementById("match-home-name").innerText = state.currentUser.nickname;
+    document.getElementById("match-away-name").innerText = opponent.nickname;
+    document.getElementById("match-home-score").innerText = "0";
+    document.getElementById("match-away-score").innerText = "0";
+    document.getElementById("match-result-anim").classList.add("hidden");
+    document.getElementById("match-close-btn").classList.add("hidden");
+
+    const canvas = document.getElementById("match-canvas");
+    const ctx = canvas.getContext("2d");
+
+    let time = 0;
+    let homeScore = 0;
+    let awayScore = 0;
+    
+    const totalPower = myPower + oppPower;
+    const myWinChance = myPower / totalPower;
+
+    // Initialize 2D Match entities (Players)
+    const entities = [];
+    
+    // Helper to load image for card rendering
+    function getCardImage(player) {
+        const img = new Image();
+        img.src = player.avatar || 'https://via.placeholder.com/40';
+        return img;
+    }
+
+    // Home Team (Left side)
+    mySquad.forEach((p, i) => {
+        entities.push({
+            team: 'home', player: p, img: getCardImage(p),
+            x: 100 + Math.random()*200, y: 50 + (i * 80),
+            vx: 0, vy: 0, targetX: 400, targetY: 250
+        });
+    });
+
+    // Away Team (Right side)
+    oppSquadArray.forEach((p, i) => {
+        entities.push({
+            team: 'away', player: p, img: getCardImage(p),
+            x: 700 - Math.random()*200, y: 50 + (i * 80),
+            vx: 0, vy: 0, targetX: 400, targetY: 250
+        });
+    });
+
+    const ball = { x: 400, y: 250, vx: 0, vy: 0 };
+
+    function drawMiniCard(ctx, entity) {
+        ctx.save();
+        // Draw card background
+        ctx.fillStyle = entity.team === 'home' ? '#1a2a6c' : '#b21f1f'; // Blue for home, Red for away
+        ctx.beginPath();
+        ctx.roundRect(entity.x - 20, entity.y - 30, 40, 60, 5);
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = entity.team === 'home' ? '#4de4ff' : '#ff4d4d';
+        ctx.stroke();
+
+        // Draw Player Image
+        if (entity.img.complete) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(entity.x, entity.y - 10, 15, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(entity.img, entity.x - 15, entity.y - 25, 30, 30);
+            ctx.restore();
+        }
+
+        // Draw OVR
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(getPlayerOVR(entity.player), entity.x, entity.y + 15);
+        
+        // Draw position
+        ctx.font = "8px Arial";
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        ctx.fillText(entity.player.position.substring(0,3).toUpperCase(), entity.x, entity.y + 25);
+        
+        ctx.restore();
+    }
+
+    draftMatchInterval = setInterval(() => {
+        time++;
+        
+        // Clear canvas
+        ctx.fillStyle = "#2a5a3b";
+        ctx.fillRect(0, 0, 800, 500);
+
+        // Draw Pitch Lines
+        ctx.strokeStyle = "rgba(255,255,255,0.5)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(400, 0); ctx.lineTo(400, 500); // Center line
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(400, 250, 60, 0, Math.PI*2); // Center circle
+        ctx.stroke();
+        // Penalty boxes
+        ctx.strokeRect(0, 100, 120, 300);
+        ctx.strokeRect(680, 100, 120, 300);
+
+        // Logic: Ball moves, entities chase ball
+        ball.x += (Math.random() - 0.5) * 30;
+        ball.y += (Math.random() - 0.5) * 30;
+
+        if (ball.x < 10) ball.x = 10; if (ball.x > 790) ball.x = 790;
+        if (ball.y < 10) ball.y = 10; if (ball.y > 490) ball.y = 490;
+
+        // Draw entities
+        entities.forEach(ent => {
+            // Move entity slowly towards ball
+            ent.x += (ball.x - ent.x) * 0.05 + (Math.random() - 0.5) * 5;
+            ent.y += (ball.y - ent.y) * 0.05 + (Math.random() - 0.5) * 5;
+            
+            // Constrain
+            if (ent.x < 20) ent.x = 20; if (ent.x > 780) ent.x = 780;
+            if (ent.y < 30) ent.y = 30; if (ent.y > 470) ent.y = 470;
+
+            drawMiniCard(ctx, ent);
+        });
+
+        // Draw Ball
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, 6, 0, Math.PI*2);
+        ctx.fill();
+
+        // Goals logic (90 ticks = 90 mins)
+        if (time % 15 === 0) {
+            if (Math.random() < 0.5) { // 50% chance of a goal event per 15 ticks
+                if (Math.random() < myWinChance) {
+                    homeScore++; ball.x = 400; ball.y = 250;
+                    document.getElementById("match-home-score").innerText = homeScore;
+                } else {
+                    awayScore++; ball.x = 400; ball.y = 250;
+                    document.getElementById("match-away-score").innerText = awayScore;
+                }
+                // Reset entity positions slightly on goal
+                entities.forEach(ent => {
+                    ent.x = ent.team === 'home' ? 300 : 500;
+                    ent.y = 250 + (Math.random() - 0.5) * 100;
+                });
+            }
+        }
+
+        if (time >= 90) {
+            clearInterval(draftMatchInterval);
+            finishDraftMatch(homeScore, awayScore);
+        }
+    }, 120);
+}
+
+function finishDraftMatch(home, away) {
+    const resEl = document.getElementById("match-result-anim");
+    const closeBtn = document.getElementById("match-close-btn");
+    
+    resEl.classList.remove("hidden");
+    closeBtn.classList.remove("hidden");
+
+    let coinsEarned = 0;
+    if (home > away) {
+        resEl.innerHTML = <span style="color: #4CAF50;">KAZANDIN!</span><br><span style="font-size: 2rem; color: var(--accent-gold); text-shadow: none;">+30 🪙</span>;
+        coinsEarned = 30;
+    } else if (home === away) {
+        resEl.innerHTML = <span style="color: #FFC107;">BERABERE</span><br><span style="font-size: 2rem; color: var(--accent-gold); text-shadow: none;">+20 🪙</span>;
+        coinsEarned = 20;
+    } else {
+        resEl.innerHTML = <span style="color: #F44336;">MAGLUBIYET</span><br><span style="font-size: 2rem; color: var(--accent-gold); text-shadow: none;">+10 🪙</span>;
+        coinsEarned = 10;
+    }
+    
+    // Add Coins
+    if (state.currentUser) {
+        state.currentUser.coins = (state.currentUser.coins || 0) + coinsEarned;
+        const cDisplay = document.getElementById("nav-coins");
+        if (cDisplay) cDisplay.innerText = state.currentUser.coins;
+        saveDatabase();
+    }
+}
+window.closeMatchOverlay = function() {
+    document.getElementById("draft-match-overlay").classList.add("hidden");
+}

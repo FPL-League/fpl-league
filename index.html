@@ -661,92 +661,111 @@
 
 
             <!-- DRAFT SECTION -->
-            <section id="draft" class="content-section">
-                <div class="card" style="position: relative;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                        <h3 style="margin: 0;"><i class="fa-solid fa-layer-group"></i> Ultimate Team Kadrom</h3>
-                        <button class="btn btn-secondary" id="reset-draft-btn">Kadro Sifirla</button>
-                    </div>
+                        <section id="draft" class="content-section">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    
+                    <!-- LEFT COLUMN: SQUAD BUILDER -->
+                    <div class="card" style="position: relative;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <h3 style="margin: 0;"><i class="fa-solid fa-layer-group"></i> UT Kadrom (5v5)</h3>
+                            <button class="btn btn-secondary" id="reset-draft-btn">Kadro Sifirla</button>
+                        </div>
 
-                    <!-- Squad Builder Pitch -->
-                    <div class="draft-pitch">
-                        <!-- Top (Opponent side visual) -->
-                        <div class="pitch-line pitch-line-top"></div>
-                        <div class="pitch-line pitch-line-bottom"></div>
-                        <div class="pitch-line pitch-center-circle"></div>
-                        <div class="pitch-line pitch-center-line"></div>
+                        <!-- Squad Builder Pitch -->
+                        <div class="draft-pitch">
+                            <div class="pitch-line pitch-line-top"></div>
+                            <div class="pitch-line pitch-line-bottom"></div>
+                            <div class="pitch-line pitch-center-circle"></div>
+                            <div class="pitch-line pitch-center-line"></div>
+                            
+                            <div class="draft-row">
+                                <div id="slot-fwd" class="draft-slot">
+                                    <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>FORVET</span></div>
+                                </div>
+                            </div>
+                            <div class="draft-row" style="gap: 80px;">
+                                <div id="slot-mid1" class="draft-slot">
+                                    <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>SOL ORTA</span></div>
+                                </div>
+                                <div id="slot-mid2" class="draft-slot">
+                                    <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>SAG ORTA</span></div>
+                                </div>
+                            </div>
+                            <div class="draft-row">
+                                <div id="slot-def" class="draft-slot">
+                                    <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>DEFANS</span></div>
+                                </div>
+                            </div>
+                            <div class="draft-row">
+                                <div id="slot-gk" class="draft-slot">
+                                    <div class="slot-placeholder"><i class="fa-solid fa-plus"></i><span>KALECI</span></div>
+                                </div>
+                            </div>
+                        </div>
                         
-                        <!-- Forward -->
-                        <div class="draft-row">
-                            <div id="slot-fwd" class="draft-slot">
-                                <div class="slot-placeholder">
-                                    <i class="fa-solid fa-plus"></i><span>FORVET</span>
-                                </div>
+                        <div class="draft-metrics-overlay">
+                            <div class="draft-metric-box">
+                                <span class="metric-label">TAKIM REYTINGI</span>
+                                <span id="draft-rating" class="metric-val">0</span>
+                            </div>
+                            <div class="draft-metric-box">
+                                <span class="metric-label">KIMYA</span>
+                                <span id="draft-chemistry" class="metric-val">0</span>
                             </div>
                         </div>
-
-                        <!-- Midfield -->
-                        <div class="draft-row" style="gap: 100px;">
-                            <div id="slot-mid1" class="draft-slot">
-                                <div class="slot-placeholder">
-                                    <i class="fa-solid fa-plus"></i><span>SOL ORTA</span>
-                                </div>
-                            </div>
-                            <div id="slot-mid2" class="draft-slot">
-                                <div class="slot-placeholder">
-                                    <i class="fa-solid fa-plus"></i><span>SAG ORTA</span>
-                                </div>
-                            </div>
+                        <div style="height: 10px; background: rgba(255,255,255,0.1); margin-top: 10px; border-radius: 5px; overflow: hidden;">
+                            <div id="draft-chem-bar" style="height: 100%; width: 0%; background: var(--accent-neon); transition: 0.5s ease;"></div>
                         </div>
 
-                        <!-- Defense -->
-                        <div class="draft-row">
-                            <div id="slot-def" class="draft-slot">
-                                <div class="slot-placeholder">
-                                    <i class="fa-solid fa-plus"></i><span>DEFANS</span>
-                                </div>
+                        <!-- Draft Selection Panel (Overlay inside left column) -->
+                        <div id="draft-selection-panel" class="hidden" style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(10,14,23,0.95); z-index: 100; display: flex; flex-direction: column; padding: 1rem; overflow-y: auto;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <h3>Oyuncu Sec</h3>
+                                <button class="btn btn-secondary" onclick="document.getElementById('draft-selection-panel').classList.add('hidden')">Kapat</button>
                             </div>
-                        </div>
-
-                        <!-- Goalkeeper -->
-                        <div class="draft-row">
-                            <div id="slot-gk" class="draft-slot">
-                                <div class="slot-placeholder">
-                                    <i class="fa-solid fa-plus"></i><span>KALECI</span>
-                                </div>
-                            </div>
+                            <div id="draft-candidates-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;"></div>
                         </div>
                     </div>
-                    
-                    <!-- Metrics Overlay -->
-                    <div class="draft-metrics-overlay">
-                        <div class="draft-metric-box">
-                            <span class="metric-label">TAKIM REYTINGI</span>
-                            <span id="draft-rating" class="metric-val">0</span>
-                        </div>
-                        <div class="draft-metric-box">
-                            <span class="metric-label">KIMYA</span>
-                            <span id="draft-chemistry" class="metric-val">0</span>
-                        </div>
-                    </div>
-                    
-                    <div style="height: 10px; background: rgba(255,255,255,0.1); margin-top: 10px; border-radius: 5px; overflow: hidden;">
-                        <div id="draft-chem-bar" style="height: 100%; width: 0%; background: var(--accent-neon); transition: 0.5s ease;"></div>
-                    </div>
 
-                    <!-- Draft Selection Modal/Panel -->
-                    <div id="draft-selection-panel" class="hidden" style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(10,14,23,0.95); z-index: 100; display: flex; flex-direction: column; padding: 2rem; overflow-y: auto;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                            <h3><i class="fa-solid fa-magnifying-glass"></i> Oyuncu Sec</h3>
-                            <button class="btn btn-secondary" onclick="document.getElementById('draft-selection-panel').classList.add('hidden')"><i class="fa-solid fa-xmark"></i> Kapat</button>
+                    <!-- RIGHT COLUMN: MATCHMAKING -->
+                    <div class="card" style="display: flex; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <h3 style="margin: 0;"><i class="fa-solid fa-gamepad"></i> Mac Yap (Online)</h3>
                         </div>
-                        <div id="draft-candidates-container" style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
-                            <!-- Candidate Cards populated here -->
+                        <p style="color: var(--text-muted); margin-bottom: 1rem;">Rakiplerinizin kadrolarina karsi 5v5 mac yapin. Kazanirsaniz 30, berabere 20, kaybederseniz 10 coin kazanirsiniz.</p>
+                        
+                        <div id="draft-opponents-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem;">
+                            <!-- Opponents populated by JS -->
                         </div>
                     </div>
                 </div>
-            </section>
-            <!-- MARKET SECTION -->
+
+                <!-- Match Engine 2D Overlay Modal (Full Screen) -->
+                <div id="draft-match-overlay" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <div style="width: 100%; max-width: 900px; padding: 1rem; text-align: center;">
+                        
+                        <!-- Scoreboard -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-dark); padding: 1rem 2rem; border-radius: 12px; margin-bottom: 1rem; border: 2px solid var(--accent-neon);">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent-blue);" id="match-home-name">Sen</div>
+                            <div style="font-size: 3rem; font-weight: 900; letter-spacing: 5px;">
+                                <span id="match-home-score">0</span> - <span id="match-away-score">0</span>
+                            </div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent-red);" id="match-away-name">Rakip</div>
+                        </div>
+
+                        <!-- 2D Pitch Canvas -->
+                        <div style="position: relative; width: 100%; max-width: 800px; height: 500px; background: #2a5a3b; border: 4px solid #fff; margin: 0 auto; overflow: hidden; border-radius: 8px;">
+                            <canvas id="match-canvas" width="800" height="500"></canvas>
+                        </div>
+                        
+                        <!-- Post-Match Result Text -->
+                        <div id="match-result-anim" class="hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 5rem; font-weight: 900; text-shadow: 0 0 30px #000; z-index: 10;">
+                        </div>
+
+                        <button id="match-close-btn" class="btn btn-primary hidden" style="margin-top: 1.5rem; font-size: 1.2rem; padding: 1rem 3rem;" onclick="closeMatchOverlay()">Maci Kapat & Odulu Al</button>
+                    </div>
+                </div>
+            </section><!-- MARKET SECTION -->
             <section id="market" class="content-section">
                 <div class="card" style="margin-bottom: 2rem;">
                     <h3><i class="fa-solid fa-box-open"></i> FC Magazasi (Paketler)</h3>
@@ -989,7 +1008,7 @@
 
     <!-- NOTIFICATION TOAST -->
     <div id="notification-toast" class="toast hidden"></div>
-    <script src="app.js?v=55"></script>
+    <script src="app.js?v=56"></script>
 </body>
 </html>
 
